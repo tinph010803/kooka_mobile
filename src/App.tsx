@@ -3,9 +3,7 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import LoginPage from "./pages/LoginPage";
-// import RegisterPage from "./pages/RegisterPage";
-// import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import HomePage from "./pages/HomePage";
+import MainTabs from "./navigation/MainTabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -24,9 +22,7 @@ export default function App() {
           }}
         >
           <Stack.Screen name="Login" component={LoginPage} />
-          {/* <Stack.Screen name="Register" component={RegisterPage} />
-          <Stack.Screen name="ForgotPassword" component={ForgotPasswordPage} /> */}
-          <Stack.Screen name="Home" component={HomePage} />
+          <Stack.Screen name="Home" component={MainTabs} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
