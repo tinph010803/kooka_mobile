@@ -6,6 +6,7 @@ import SearchPage from "../pages/SearchPage";
 import AddPage from "../pages/AddPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import ProfilePage from "../pages/ProfilePage";
+import colors from "tailwindcss/colors";
 
 const Tab = createBottomTabNavigator();
 
@@ -14,19 +15,16 @@ const MainTabs = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#F97316",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarShowLabel: false, // Ẩn label, chỉ hiện icon
+        tabBarActiveTintColor: colors.orange[500], // orange-500
+        tabBarInactiveTintColor: colors.gray[400], // gray-400
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.white,
           borderTopWidth: 1,
-          borderTopColor: "#E5E7EB",
+          borderTopColor: colors.gray[200], // gray-200
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
         },
       }}
     >
@@ -34,7 +32,6 @@ const MainTabs = () => {
         name="HomeTab"
         component={HomeTabPage}
         options={{
-          tabBarLabel: "Home",
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />

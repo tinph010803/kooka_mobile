@@ -66,11 +66,11 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   const getButtonText = () => {
     switch (text) {
       case "signin_with":
-        return "Sign in with Google";
+        return " Đăng nhập với Google";
       case "signup_with":
-        return "Sign up with Google";
+        return " Đăng ký với Google";
       case "continue_with":
-        return "Continue with Google";
+        return " Tiếp tục với Google";
       default:
         return "Google";
     }
