@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.tinph1830.kooka_mobile"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -34,6 +35,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8fe375bd-fbd4-4754-a5e4-29e61945e390"
+      }
     }
   }
 }
