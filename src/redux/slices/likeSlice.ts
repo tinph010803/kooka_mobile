@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { apiClient } from "./authSlice";
+import axiosInstance from "../../utils/axiosInstance";
 
 // =====================
 // TYPES
@@ -43,7 +43,7 @@ export const getUserLikes = createAsyncThunk<
     if (!userId) {
       return [];
     }
-    const res = await apiClient.get(`/likes/user/${userId}`);
+    const res = await axiosInstance.get(`/likes/user/${userId}`);
     // Trả về array của commentIds mà user đã like
     return res.data.likes?.map((like: Like) => like.commentId) || [];
   } catch (err: any) {
@@ -60,7 +60,7 @@ export const toggleLike = createAsyncThunk<
   { rejectValue: string }
 >("likes/toggleLike", async (commentId, { rejectWithValue }) => {
   try {
-    const res = await apiClient.post(`/likes/toggle`, { commentId });
+    const res = await axiosInstance.post(`/likes/toggle`, { commentId });
     console.log("🔵 Backend response:", res.data);
     return {
       commentId,
@@ -79,7 +79,7 @@ export const likeComment = createAsyncThunk<
   { rejectValue: string }
 >("likes/likeComment", async (commentId, { rejectWithValue }) => {
   try {
-    const res = await apiClient.post(`/likes/toggle`, { commentId });
+    const res = await axiosInstance.post(`/likes/toggle`, { commentId });
     return {
       commentId,
       likes: res.data.likes || 0,
@@ -96,7 +96,7 @@ export const unlikeComment = createAsyncThunk<
   { rejectValue: string }
 >("likes/unlikeComment", async (commentId, { rejectWithValue }) => {
   try {
-    const res = await apiClient.post(`/likes/toggle`, { commentId });
+    const res = await axiosInstance.post(`/likes/toggle`, { commentId });
     return {
       commentId,
       likes: res.data.likes || 0,

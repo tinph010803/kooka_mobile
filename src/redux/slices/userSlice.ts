@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { apiClient } from "./authSlice";
+import axiosInstance from "../../utils/axiosInstance";
 
 interface Profile {
   userId: string;
@@ -33,7 +33,7 @@ export const fetchProfile = createAsyncThunk<Profile, string, { rejectValue: str
   "user/fetchProfile",
   async (userId, { rejectWithValue }) => {
     try {
-      const res = await apiClient.get(`/user/profile/${userId}`);
+      const res = await axiosInstance.get(`/user/profile/${userId}`);
       return res.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || "Failed to fetch profile");
@@ -48,7 +48,7 @@ export const updateProfile = createAsyncThunk<
   { rejectValue: string }
 >("user/updateProfile", async ({ userId, data }, { rejectWithValue }) => {
   try {
-    const res = await apiClient.put(`/user/profile/${userId}`, data);
+    const res = await axiosInstance.put(`/user/profile/${userId}`, data);
     return res.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || "Failed to update profile");
@@ -60,7 +60,7 @@ export const fetchCurrentProfile = createAsyncThunk<Profile, void, { rejectValue
   "user/fetchCurrentProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await apiClient.get("/user/profile");
+      const res = await axiosInstance.get("/user/profile");
       return res.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || "Failed to fetch current profile");

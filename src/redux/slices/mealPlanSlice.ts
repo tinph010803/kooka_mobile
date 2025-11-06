@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { apiClient } from "./authSlice";
+import axiosInstance from "../../utils/axiosInstance";
 
 // ==== Types ====
 export interface Meal {
@@ -48,7 +48,7 @@ export const fetchMealPlansByUser = createAsyncThunk(
   "mealPlans/fetchByUser",
   async (userId: string, { rejectWithValue }) => {
     try {
-      const res = await apiClient.get(`/mealplans/user/${userId}`);
+      const res = await axiosInstance.get(`/mealplans/${userId}`);
       return res.data as MealPlan[];
     } catch (error: unknown) {
       const err = error as any;
@@ -65,7 +65,7 @@ export const createMealPlan = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await apiClient.post("/mealplans", data);
+      const res = await axiosInstance.post("/mealplans", data);
       return res.data as MealPlan;
     } catch (error: unknown) {
       const err = error as any;
@@ -82,7 +82,7 @@ export const updateMealPlan = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await apiClient.put(`/mealplans/${id}`, mealPlan);
+      const res = await axiosInstance.put(`/mealplans/${id}`, mealPlan);
       return res.data as MealPlan;
     } catch (error: unknown) {
       const err = error as any;
@@ -96,27 +96,11 @@ export const deleteMealPlan = createAsyncThunk(
   "mealPlans/delete",
   async (id: string, { rejectWithValue }) => {
     try {
-      await apiClient.delete(`/mealplans/${id}`);
+      await axiosInstance.delete(`/mealplans/${id}`);
       return id;
     } catch (error: unknown) {
       const err = error as any;
       return rejectWithValue(err.response?.data?.message || "Failed to delete meal plan");
-    }
-  }
-);
-
-// 🥗 Đánh dấu meal plan là hoàn thành
-export const markMealPlanCompleted = createAsyncThunk(
-  "mealPlans/markCompleted",
-  async (id: string, { rejectWithValue }) => {
-    try {
-      const res = await apiClient.put(`/mealplans/${id}`, {
-        status: "completed",
-      });
-      return res.data as MealPlan;
-    } catch (error: unknown) {
-      const err = error as any;
-      return rejectWithValue(err.response?.data?.message || "Failed to mark meal plan completed");
     }
   }
 );
@@ -154,18 +138,6 @@ const mealPlanSlice = createSlice({
       }
       state.loading = false;
     });
-
-    // 🟢 Mark Completed
-    builder.addCase(
-      markMealPlanCompleted.fulfilled,
-      (state, action: PayloadAction<MealPlan>) => {
-        const index = state.mealPlans.findIndex((m) => m._id === action.payload._id);
-        if (index !== -1) {
-          state.mealPlans[index] = action.payload;
-        }
-        state.loading = false;
-      }
-    );
 
     // 🟢 Delete
     builder.addCase(deleteMealPlan.fulfilled, (state, action: PayloadAction<string>) => {
