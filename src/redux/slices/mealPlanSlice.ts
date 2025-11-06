@@ -105,22 +105,6 @@ export const deleteMealPlan = createAsyncThunk(
   }
 );
 
-// 🥗 Đánh dấu meal plan là hoàn thành
-export const markMealPlanCompleted = createAsyncThunk(
-  "mealPlans/markCompleted",
-  async (id: string, { rejectWithValue }) => {
-    try {
-      const res = await axiosInstance.put(`/mealplans/${id}/status`, {
-        status: "completed",
-      });
-      return res.data as MealPlan;
-    } catch (error: unknown) {
-      const err = error as any;
-      return rejectWithValue(err.response?.data?.message || "Failed to mark meal plan completed");
-    }
-  }
-);
-
 // ==== Slice ====
 const mealPlanSlice = createSlice({
   name: "mealPlans",
@@ -154,18 +138,6 @@ const mealPlanSlice = createSlice({
       }
       state.loading = false;
     });
-
-    // 🟢 Mark Completed
-    builder.addCase(
-      markMealPlanCompleted.fulfilled,
-      (state, action: PayloadAction<MealPlan>) => {
-        const index = state.mealPlans.findIndex((m) => m._id === action.payload._id);
-        if (index !== -1) {
-          state.mealPlans[index] = action.payload;
-        }
-        state.loading = false;
-      }
-    );
 
     // 🟢 Delete
     builder.addCase(deleteMealPlan.fulfilled, (state, action: PayloadAction<string>) => {
