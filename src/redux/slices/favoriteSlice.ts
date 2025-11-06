@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { apiClient } from "./authSlice";
+import axiosInstance from "../../utils/axiosInstance";
 
 // =====================
 // TYPES
@@ -63,7 +63,7 @@ export const toggleFavorite = createAsyncThunk<
   { rejectValue: string }
 >("favorite/toggle", async ({ recipeId }, { rejectWithValue }) => {
   try {
-    const res = await apiClient.post("/favorites/toggle", { recipeId });
+    const res = await axiosInstance.post("/favorites/toggle", { recipeId });
     return { ...res.data, recipeId };
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || "Failed to toggle favorite");
@@ -77,7 +77,7 @@ export const getUserFavorites = createAsyncThunk<
   { rejectValue: string }
 >("favorite/getUserFavorites", async ({ userId, page = 1, limit = 20 }, { rejectWithValue }) => {
   try {
-    const res = await apiClient.get(`/favorites/user/${userId}?page=${page}&limit=${limit}`);
+    const res = await axiosInstance.get(`/favorites/user/${userId}?page=${page}&limit=${limit}`);
     return res.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || "Failed to get user favorites");
@@ -91,7 +91,7 @@ export const checkUserFavorited = createAsyncThunk<
   { rejectValue: string }
 >("favorite/checkUserFavorited", async ({ recipeId, userId }, { rejectWithValue }) => {
   try {
-    const res = await apiClient.get(`/favorites/check/${recipeId}/${userId}`);
+    const res = await axiosInstance.get(`/favorites/check/${recipeId}/${userId}`);
     return { ...res.data, recipeId, userId };
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || "Failed to check favorite status");
@@ -100,12 +100,12 @@ export const checkUserFavorited = createAsyncThunk<
 
 // Check multiple recipes at once
 export const checkMultipleRecipes = createAsyncThunk<
-  Array<{ recipeId: string; favorited: boolean }>,
+  { recipeId: string; favorited: boolean }[],
   { recipeIds: string[] },
   { rejectValue: string }
 >("favorite/checkMultipleRecipes", async ({ recipeIds }, { rejectWithValue }) => {
   try {
-    const res = await apiClient.post("/favorites/check-multiple", { recipeIds });
+    const res = await axiosInstance.post("/favorites/check-multiple", { recipeIds });
     return res.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || "Failed to check multiple favorites");
@@ -119,7 +119,7 @@ export const getFavoriteCount = createAsyncThunk<
   { rejectValue: string }
 >("favorite/getFavoriteCount", async ({ recipeId }, { rejectWithValue }) => {
   try {
-    const res = await apiClient.get(`/favorites/count/${recipeId}`);
+    const res = await axiosInstance.get(`/favorites/count/${recipeId}`);
     return { recipeId, count: res.data.count };
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || "Failed to get favorite count");
@@ -133,7 +133,7 @@ export const fetchMostFavorited = createAsyncThunk<
   { rejectValue: string }
 >("favorite/fetchMostFavorited", async (_, { rejectWithValue }) => {
   try {
-    const res = await apiClient.get("/favorites/most-favorited");
+    const res = await axiosInstance.get("/favorites/most-favorited");
     return res.data;
   } catch (err: any) {
     return rejectWithValue(err.response?.data?.message || "Failed to fetch most favorited");
