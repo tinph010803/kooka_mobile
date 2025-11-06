@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import { useNavigation } from "@react-navigation/native";
 import FormInput from "../components/FormInput";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { login, clearError } from "../redux/slices/authSlice";
 
 interface LoginPageProps {
   onBack?: () => void;
@@ -20,14 +22,34 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
   const navigation = useNavigation();
+  const dispatch = useAppDispatch();
+  
+  // Get Redux state
+  const { user, loading, error: authError } = useAppSelector((state) => state.auth);
+  
   const [formData, setFormData] = useState({
-    email: "admin",
-    password: "admin",
+    usernameOrEmail: "tin18",
+    password: "123",
   });
 
-  const [buttonLoading, setButtonLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // Clear error khi component unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  // Navigate khi login thành công
+  useEffect(() => {
+    if (user && !loading) {
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigation.navigate("Home" as never);
+      }, 1000);
+    }
+  }, [user, loading, navigation]);
 
   const handleInputChange = (name: string, value: string) => {
     setFormData((prev) => ({
@@ -37,19 +59,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
   };
 
   const handleSubmit = async () => {
-    setButtonLoading(true);
-    setShowSuccess(false);
-    setError(null);
+    // Clear previous error
+    dispatch(clearError());
 
-    // Mock API call - replace with actual API
-    setTimeout(() => {
-      // Simulate success
-      setShowSuccess(true);
-      setTimeout(() => {
-        navigation.navigate("Home" as never);
-        setButtonLoading(false);
-      }, 1000);
-    }, 2000);
+    // Validate input
+    if (!formData.usernameOrEmail || !formData.password) {
+      return;
+    }
+
+    // Dispatch login action
+    try {
+      await dispatch(login({
+        usernameOrEmail: formData.usernameOrEmail,
+        password: formData.password,
+      })).unwrap();
+      // Success will be handled by useEffect
+    } catch (err) {
+      // Error will be shown from Redux state
+      console.error('Login error:', err);
+    }
   };
 
   return (
@@ -88,10 +116,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
               <Text className="text-sm text-gray-600">Đăng nhập vào tài khoản của bạn</Text>
             </View>
 
-            {error && (
+            {authError && (
               <View className="flex-row items-center bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <AlertCircle size={16} color="#991B1B" />
-                <Text className="ml-2 text-sm text-red-800">{error}</Text>
+                <Text className="ml-2 text-sm text-red-800">{authError}</Text>
               </View>
             )}
 
@@ -104,12 +132,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
 
             <View className="mb-4">
               <FormInput
-                label="Email"
+                label="Email hoặc Username"
                 type="text"
-                name="email"
-                value={formData.email}
+                name="usernameOrEmail"
+                value={formData.usernameOrEmail}
                 onChange={handleInputChange}
-                placeholder="john@example.com"
+                placeholder="john@example.com hoặc username"
                 icon={Mail}
                 required
               />
@@ -127,15 +155,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
 
               <TouchableOpacity
                 onPress={handleSubmit}
-                disabled={buttonLoading}
+                disabled={loading}
                 activeOpacity={0.7}
                 className="mt-2 rounded-lg overflow-hidden"
               >
                 <LinearGradient
-                  colors={buttonLoading ? ["#9CA3AF", "#9CA3AF"] : ["#F97316", "#DC2626"]}
+                  colors={loading ? ["#9CA3AF", "#9CA3AF"] : ["#F97316", "#DC2626"]}
                   className="py-3 px-4 items-center justify-center"
                 >
-                  {buttonLoading ? (
+                  {loading ? (
                     <View className="flex-row items-center">
                       <ActivityIndicator size="small" color="#FFFFFF" />
                       <Text className="text-sm font-semibold text-white ml-2">
