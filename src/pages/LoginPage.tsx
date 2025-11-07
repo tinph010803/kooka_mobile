@@ -33,6 +33,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
   });
 
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Clear error khi component unmount
   useEffect(() => {
@@ -41,15 +42,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
     };
   }, [dispatch]);
 
-  // Navigate khi login thành công
+  // Navigate khi login thành công (chỉ khi đang trong quá trình login)
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && isLoggingIn) {
       setShowSuccess(true);
       setTimeout(() => {
         navigation.navigate("Home" as never);
+        setIsLoggingIn(false); // Reset flag
       }, 1000);
     }
-  }, [user, loading, navigation]);
+  }, [user, loading, isLoggingIn, navigation]);
 
   const handleInputChange = (name: string, value: string) => {
     setFormData((prev) => ({
@@ -67,6 +69,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
       return;
     }
 
+    // Set flag để biết đang trong quá trình login
+    setIsLoggingIn(true);
+
     // Dispatch login action
     try {
       await dispatch(login({
@@ -77,6 +82,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
     } catch (err) {
       // Error will be shown from Redux state
       console.error('Login error:', err);
+      setIsLoggingIn(false); // Reset flag nếu có lỗi
     }
   };
 
