@@ -82,7 +82,7 @@ export const updateMealPlan = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await axiosInstance.put(`/mealplans/${id}`, mealPlan);
+      const res = await axiosInstance.patch(`/mealplans/${id}`, mealPlan);
       return res.data as MealPlan;
     } catch (error: unknown) {
       const err = error as any;

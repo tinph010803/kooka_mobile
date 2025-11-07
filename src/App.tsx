@@ -6,15 +6,39 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import AccountManagementPage from "./pages/AccountManagementPage";
+import RecipeDetailPage from "./pages/RecipeDetailPage";
 import MainTabs from "./navigation/MainTabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor, RootState } from "./redux/store";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Text } from "react-native";
+import Toast from "react-native-toast-message";
 
 const Stack = createNativeStackNavigator();
+
+// Custom Toast config để hiển thị đủ text
+const toastConfig = {
+  success: (props: any) => (
+    <View className="bg-green-500 mx-4 p-4 rounded-2xl shadow-lg" style={{ maxWidth: '90%', minWidth: 300 }}>
+      <Text className="text-white font-bold text-base mb-1">{props.text1}</Text>
+      <Text className="text-white text-sm" numberOfLines={5}>{props.text2}</Text>
+    </View>
+  ),
+  error: (props: any) => (
+    <View className="bg-red-500 mx-4 p-4 rounded-2xl shadow-lg" style={{ maxWidth: '90%', minWidth: 300 }}>
+      <Text className="text-white font-bold text-base mb-1">{props.text1}</Text>
+      <Text className="text-white text-sm" numberOfLines={5}>{props.text2}</Text>
+    </View>
+  ),
+  info: (props: any) => (
+    <View className="bg-blue-500 mx-4 p-4 rounded-2xl shadow-lg" style={{ maxWidth: '90%', minWidth: 300 }}>
+      <Text className="text-white font-bold text-base mb-1">{props.text1}</Text>
+      <Text className="text-white text-sm" numberOfLines={5}>{props.text2}</Text>
+    </View>
+  ),
+};
 
 // Component Navigation riêng để có thể sử dụng Redux hooks
 function AppNavigation() {
@@ -55,7 +79,9 @@ if (!initialRoute) {
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordPage} />
         <Stack.Screen name="Home" component={MainTabs} />
         <Stack.Screen name="AccountManagement" component={AccountManagementPage} />
+        <Stack.Screen name="RecipeDetail" component={RecipeDetailPage} />
       </Stack.Navigator>
+      <Toast config={toastConfig} />
     </NavigationContainer>
   );
 }

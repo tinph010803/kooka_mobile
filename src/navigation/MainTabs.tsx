@@ -1,9 +1,9 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Home, Search, PlusCircle, Bell, User } from "lucide-react-native";
+import { Home, Search, Calendar, Bell, User } from "lucide-react-native";
 import HomeTabPage from "../pages/HomeTabPage";
 import SearchPage from "../pages/SearchPage";
-import AddPage from "../pages/AddPage";
+import MealPlanPage from "../pages/MealPlanPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import ProfilePage from "../pages/ProfilePage";
 import colors from "tailwindcss/colors";
@@ -53,10 +53,10 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
-        name="Add"
-        component={AddPage}
+        name="MealPlan"
+        component={MealPlanPage}
         options={{
-          tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
         }}
       />
       <Tab.Screen
