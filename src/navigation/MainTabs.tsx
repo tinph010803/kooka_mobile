@@ -7,24 +7,34 @@ import AddPage from "../pages/AddPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import ProfilePage from "../pages/ProfilePage";
 import colors from "tailwindcss/colors";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false, // Ẩn label, chỉ hiện icon
-        tabBarActiveTintColor: colors.orange[500], // orange-500
-        tabBarInactiveTintColor: colors.gray[400], // gray-400
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: colors.orange[500],
+        tabBarInactiveTintColor: colors.gray[400],
         tabBarStyle: {
+          position: 'absolute',
           backgroundColor: colors.white,
           borderTopWidth: 1,
-          borderTopColor: colors.gray[200], // gray-200
-          height: 60,
-          paddingBottom: 8,
+          borderTopColor: colors.gray[200],
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
         },
       }}
     >
@@ -39,7 +49,6 @@ const MainTabs = () => {
         name="Search"
         component={SearchPage}
         options={{
-          tabBarLabel: "Search",
           tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
         }}
       />
@@ -47,7 +56,6 @@ const MainTabs = () => {
         name="Add"
         component={AddPage}
         options={{
-          tabBarLabel: "Add",
           tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
         }}
       />
@@ -55,7 +63,6 @@ const MainTabs = () => {
         name="Notifications"
         component={NotificationsPage}
         options={{
-          tabBarLabel: "Notifications",
           tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
         }}
       />
@@ -63,7 +70,6 @@ const MainTabs = () => {
         name="Profile"
         component={ProfilePage}
         options={{
-          tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />

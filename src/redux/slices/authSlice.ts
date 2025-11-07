@@ -139,6 +139,23 @@ export const resetPassword = createAsyncThunk<
   }
 });
 
+// Change Password - Đổi mật khẩu khi đã đăng nhập
+export const changePassword = createAsyncThunk<
+  { message: string },
+  { currentPassword: string; newPassword: string },
+  { rejectValue: string }
+>("auth/changePassword", async ({ currentPassword, newPassword }, { rejectWithValue }) => {
+  try {
+    const res = await axiosInstance.put("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.message || err.message || "Failed to change password");
+  }
+});
+
 // =====================
 // SLICE
 // =====================
@@ -255,6 +272,19 @@ const authSlice = createSlice({
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Failed to reset password";
+      })
+
+      // CHANGE PASSWORD
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(changePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to change password";
       });
   },
 });
