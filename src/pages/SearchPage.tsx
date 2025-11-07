@@ -1,17 +1,50 @@
-import React from "react";
-import { View, Text } from "react-native";
+import React, { useState } from "react";
+import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
+import CombinedRecipeSearch from "../components/CombinedRecipeSearch";
+import SearchingRecipes from "../components/SearchingRecipes";
+import PopularRecipes from "../components/PopularRecipes";
 
 const SearchPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useState<{
+    keyword?: string;
+    ingredients?: string[];
+    cuisine?: string;
+    category?: string;
+    tags?: string[];
+  } | null>(null);
+
+  const handleSearch = (params: {
+    keyword?: string;
+    ingredients?: string[];
+    cuisine?: string;
+    category?: string;
+    tags?: string[];
+  } | null) => {
+    setSearchParams(params);
+  };
+
   return (
-    <SafeAreaView className="flex-1">
-      <LinearGradient
-        colors={["#FFF7ED", "#FFFFFF", "#FEF2F2"]}
-        className="flex-1 justify-center items-center"
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <ScrollView 
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 36 }}
+        showsVerticalScrollIndicator={false}
       >
-        <Text className="text-3xl font-bold text-gray-900">Hello Search</Text>
-      </LinearGradient>
+        <CombinedRecipeSearch onSearch={handleSearch} />
+
+        {searchParams ? (
+          <SearchingRecipes
+            searchParams={searchParams.keyword ? searchParams : undefined}
+            ingredients={searchParams.ingredients}
+            cuisine={searchParams.cuisine}
+            category={searchParams.category}
+            tags={searchParams.tags}
+          />
+        ) : (
+          <PopularRecipes />
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
