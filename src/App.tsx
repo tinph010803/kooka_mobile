@@ -9,6 +9,7 @@ import AccountManagementPage from "./pages/AccountManagementPage";
 import RecipeDetailPage from "./pages/RecipeDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyReviewsPage from "./pages/MyReviewsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import MainTabs from "./navigation/MainTabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -81,6 +82,7 @@ if (!initialRoute) {
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordPage} />
         <Stack.Screen name="Home" component={MainTabs} />
         <Stack.Screen name="AccountManagement" component={AccountManagementPage} />
+        <Stack.Screen name="Notifications" component={NotificationsPage} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailPage} />
         <Stack.Screen name="Favorites" component={FavoritesPage} />
         <Stack.Screen name="MyReviews" component={MyReviewsPage} />
