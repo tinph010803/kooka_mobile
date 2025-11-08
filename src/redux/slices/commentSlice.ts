@@ -32,6 +32,7 @@ interface CommentState {
   comments: Comment[];
   topComments: Comment[]; // Top comments cho trang chủ
   newestComments: Comment[]; // Newest comments cho trang chủ
+  userReviews: Comment[]; // Reviews của user hiện tại
   loading: boolean;
   error: string | null;
   totalComments: number;
@@ -47,6 +48,7 @@ const initialState: CommentState = {
   comments: [],
   topComments: [],
   newestComments: [],
+  userReviews: [],
   loading: false,
   error: null,
   totalComments: 0,
@@ -80,6 +82,61 @@ export const fetchNewestComments = createAsyncThunk<Comment[], void, { rejectVal
       return res.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || "Failed to fetch newest comments");
+    }
+  }
+);
+
+// Lấy tất cả reviews của user hiện tại
+export const fetchUserReviews = createAsyncThunk<Comment[], void, { rejectValue: string }>(
+  "comments/fetchUserReviews",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get("/reviews/user");
+      
+      const reviews = res.data.reviews || res.data;
+      
+      // Fetch chi tiết recipe và comment cho mỗi review
+      const reviewsWithDetails = await Promise.all(
+        reviews.map(async (review: any) => {
+          try {
+            // Fetch recipe details
+            const recipeRes = await axiosInstance.get(`/recipes/${review.recipeId}`);
+            
+            // Fetch comments của recipe này để lấy comment content
+            const commentsRes = await axiosInstance.get(`/comments/recipe/${review.recipeId}`);
+            const comments = commentsRes.data.comments || commentsRes.data;
+            
+            // Tìm comment của review này
+            const comment = comments.find((c: any) => c._id === review.commentId);
+            
+            if (!comment) {
+              console.warn(`Comment ${review.commentId} not found for recipe ${review.recipeId}`);
+              return null;
+            }
+            
+            return {
+              ...comment,
+              ratingRecipe: review.rating,
+              recipe: {
+                _id: recipeRes.data._id,
+                name: recipeRes.data.name,
+                image: recipeRes.data.image,
+              },
+            };
+          } catch (error) {
+            console.error(`Error fetching details for review ${review._id}:`, error);
+            return null;
+          }
+        })
+      );
+      
+      // Filter out failed fetches
+      return reviewsWithDetails.filter((review) => review !== null) as Comment[];
+    } catch (err: any) {
+      console.error("Reviews API error details:");
+      console.error("- Status:", err.response?.status);
+      console.error("- Data:", err.response?.data);
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch user reviews");
     }
   }
 );
@@ -266,6 +323,20 @@ const commentSlice = createSlice({
       .addCase(fetchNewestComments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Failed to fetch newest comments";
+      })
+
+      // FETCH USER REVIEWS
+      .addCase(fetchUserReviews.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserReviews.fulfilled, (state, action) => {
+        state.loading = false;
+        state.userReviews = action.payload;
+      })
+      .addCase(fetchUserReviews.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to fetch user reviews";
       })
 
       // GET COMMENTS BY RECIPE ID
