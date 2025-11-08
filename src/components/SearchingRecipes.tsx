@@ -136,9 +136,6 @@ const SearchingRecipes: React.FC<SearchingRecipesProps> = ({
           <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
             Kết quả tìm kiếm công thức
           </Text>
-          <Text className="text-sm text-gray-600 text-center">
-            Các công thức gợi ý dựa trên lựa chọn của bạn
-          </Text>
         </View>
 
         {/* Loading / Error */}
@@ -155,32 +152,37 @@ const SearchingRecipes: React.FC<SearchingRecipesProps> = ({
 
         {/* Recipe List */}
         {!loading && searchResults.length > 0 && (
-          <View>
+          <View className="flex-row flex-wrap justify-between">
             {searchResults.map((recipe) => (
-              <RecipeCard
+              <View 
                 key={recipe._id}
-                id={recipe._id}
-                title={recipe.name}
-                description={recipe.short}
-                image={recipe.image}
-                rating={recipe.rate}
-                difficulty={recipe.difficulty}
-                cookTime={`${recipe.time}m`}
-                servings={recipe.size}
-                cuisine={recipe.cuisine.name}
-                ingredients={
-                  Array.isArray(recipe.ingredients)
-                    ? recipe.ingredients.slice(0, 3).map((ing) => ing.name)
-                    : []
-                }
-                moreIngredients={
-                  Array.isArray(recipe.ingredients) &&
-                  recipe.ingredients.length > 3
-                    ? recipe.ingredients.length - 3
-                    : 0
-                }
-                reviews={recipe.numberOfRate}
-              />
+                className="mb-3"
+                style={{ width: '48%' }}
+              >
+                <RecipeCard
+                  id={recipe._id}
+                  title={recipe.name}
+                  description={recipe.short}
+                  image={recipe.image}
+                  rating={recipe.rate}
+                  difficulty={recipe.difficulty}
+                  cookTime={`${recipe.time}m`}
+                  servings={recipe.size}
+                  cuisine={recipe.cuisine.name}
+                  ingredients={
+                    Array.isArray(recipe.ingredients)
+                      ? recipe.ingredients.slice(0, 3).map((ing) => ing.name)
+                      : []
+                  }
+                  moreIngredients={
+                    Array.isArray(recipe.ingredients) &&
+                    recipe.ingredients.length > 3
+                      ? recipe.ingredients.length - 3
+                      : 0
+                  }
+                  reviews={recipe.numberOfRate}
+                />
+              </View>
             ))}
           </View>
         )}

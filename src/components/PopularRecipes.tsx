@@ -61,32 +61,37 @@ const PopularRecipes: React.FC = () => {
           </View>
         ) : (
           <>
-            <View className="mb-4">
+            <View className="flex-row flex-wrap justify-between mb-4">
               {recipes.slice(0, 6).map((recipe) => (
-                <RecipeCard
+                <View 
                   key={recipe._id}
-                  id={recipe._id}
-                  title={recipe.name}
-                  description={recipe.short}
-                  image={recipe.image}
-                  rating={recipe.rate}
-                  difficulty={recipe.difficulty}
-                  cookTime={`${recipe.time}m`}
-                  servings={recipe.size}
-                  cuisine={recipe.cuisine.name}
-                  ingredients={
-                    Array.isArray(recipe.ingredients)
-                      ? recipe.ingredients.slice(0, 3).map((ing) => ing.name)
-                      : []
-                  }
-                  moreIngredients={
-                    Array.isArray(recipe.ingredients) &&
-                    recipe.ingredients.length > 3
-                      ? recipe.ingredients.length - 3
-                      : 0
-                  }
-                  reviews={recipe.numberOfRate}
-                />
+                  className="mb-3"
+                  style={{ width: '48%' }}
+                >
+                  <RecipeCard
+                    id={recipe._id}
+                    title={recipe.name}
+                    description={recipe.short}
+                    image={recipe.image}
+                    rating={recipe.rate}
+                    difficulty={recipe.difficulty}
+                    cookTime={`${recipe.time}m`}
+                    servings={recipe.size}
+                    cuisine={recipe.cuisine.name}
+                    ingredients={
+                      Array.isArray(recipe.ingredients)
+                        ? recipe.ingredients.slice(0, 3).map((ing) => ing.name)
+                        : []
+                    }
+                    moreIngredients={
+                      Array.isArray(recipe.ingredients) &&
+                      recipe.ingredients.length > 3
+                        ? recipe.ingredients.length - 3
+                        : 0
+                    }
+                    reviews={recipe.numberOfRate}
+                  />
+                </View>
               ))}
             </View>
 

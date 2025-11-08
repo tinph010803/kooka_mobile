@@ -4,7 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
+  Modal,
   ActivityIndicator,
   Image,
 } from "react-native";
@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Star,
 } from "lucide-react-native";
+import Toast from "react-native-toast-message";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { logout } from "../redux/slices/authSlice";
 import { fetchProfile } from "../redux/slices/userSlice";
@@ -30,6 +31,7 @@ const ProfilePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { profile, loading } = useAppSelector((state) => state.user);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     if (user?._id) {
@@ -38,20 +40,20 @@ const ProfilePage: React.FC = () => {
   }, [user, dispatch]);
 
   const handleLogout = () => {
-    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
-      {
-        text: "Hủy",
-        style: "cancel",
-      },
-      {
-        text: "Đăng xuất",
-        style: "destructive",
-        onPress: () => {
-          dispatch(logout());
-          navigation.navigate("Login" as never);
-        },
-      },
-    ]);
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    dispatch(logout());
+    navigation.navigate("Login" as never);
+    Toast.show({
+      type: "success",
+      text1: "Đăng xuất thành công",
+      text2: "Hẹn gặp lại bạn! 👋",
+      position: "bottom",
+      visibilityTime: 2000,
+    });
   };
 
   const getUserInitials = () => {
@@ -145,6 +147,52 @@ const ProfilePage: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <View className="items-center mb-4">
+              <View className="w-16 h-16 bg-red-100 rounded-full items-center justify-center mb-3">
+                <LogOut size={32} color="#EF4444" />
+              </View>
+              <Text className="text-xl font-bold text-gray-900 mb-2">
+                Đăng xuất
+              </Text>
+              <Text className="text-gray-600 text-center">
+                Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?
+              </Text>
+            </View>
+
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setShowLogoutModal(false)}
+                className="flex-1 bg-gray-100 py-3 rounded-xl"
+                activeOpacity={0.7}
+              >
+                <Text className="text-gray-700 font-semibold text-center">
+                  Hủy
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={confirmLogout}
+                className="flex-1 bg-red-500 py-3 rounded-xl"
+                activeOpacity={0.7}
+              >
+                <Text className="text-white font-semibold text-center">
+                  Đăng xuất
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
