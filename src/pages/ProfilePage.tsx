@@ -113,8 +113,16 @@ const ProfilePage: React.FC = () => {
           </TouchableOpacity>
 
           <View className="mb-4 bg-white rounded-2xl shadow-sm overflow-hidden">
-            <MenuItem icon={Heart} label="Công Thức Yêu thích" />
-            <MenuItem icon={Star} label="Đánh Giá Của Tôi" />
+            <MenuItem 
+              icon={Heart} 
+              label="Công Thức Yêu thích" 
+              onPress={() => navigation.navigate("Favorites" as never)}
+            />
+            <MenuItem 
+              icon={Star} 
+              label="Đánh Giá Của Tôi" 
+              onPress={() => navigation.navigate("MyReviews" as never)}
+            />
             <MenuItem icon={Settings} label="Cài đặt" />
             <MenuItem icon={ShieldCheck} label="Chính sách bảo mật" />
             <MenuItem icon={HelpCircle} label="Liên hệ" />
