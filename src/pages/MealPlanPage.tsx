@@ -555,26 +555,27 @@ export default function MealPlanPage() {
                 setEditingPlans(newPlan.plans);
                 setOriginalPlans(JSON.parse(JSON.stringify(newPlan.plans)));
 
-                // Tìm index của plan vừa tạo trong sortedMealPlans
-                // Phải dùng setTimeout vì Redux cần time để update
+                // Tính toán index mới bằng cách thêm newPlan vào mảng hiện tại
+                // Sau đó sort lại để tìm đúng vị trí
+                const allPlans = [...mealPlans, newPlan];
+                const sortedAllPlans = allPlans.sort((a, b) => {
+                    if (a.status === "pending" && b.status !== "pending") return -1;
+                    if (a.status !== "pending" && b.status === "pending") return 1;
+                    return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+                });
+
+                const newPlanIndex = sortedAllPlans.findIndex(p => p._id === newPlan._id);
+
+                // Set tất cả state cùng lúc
+                setCurrentPlanIndex(newPlanIndex !== -1 ? newPlanIndex : 0);
+                setViewMode("viewing");
+                setShowDatePickerModal(false);
+                setHasChanges(false);
+
+                // Dùng setTimeout ngắn để clear flag sau khi React đã render xong
                 setTimeout(() => {
-                    const updatedSortedPlans = [...mealPlans].sort((a, b) => {
-                        if (a.status === "pending" && b.status !== "pending") return -1;
-                        if (a.status !== "pending" && b.status === "pending") return 1;
-                        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-                    });
-
-                    const newPlanIndex = updatedSortedPlans.findIndex(p => p._id === newPlan._id);
-                    setCurrentPlanIndex(newPlanIndex !== -1 ? newPlanIndex : 0);
-
-                    // Chuyển sang viewing mode SAU KHI đã set index
-                    setViewMode("viewing");
-                    setShowDatePickerModal(false);
-                    setHasChanges(false);
-
-                    // Clear flag sau cùng
                     setJustCreatedPlanId(null);
-                }, 200);
+                }, 100);
 
                 Toast.show({
                     type: "success",
@@ -899,6 +900,7 @@ export default function MealPlanPage() {
                                                                         (navigation as any).navigate("RecipeDetail", { id: recipe._id })
                                                                     }
                                                                     className="bg-gray-50 rounded-xl p-3 flex-row items-center"
+                                                                    style={{ height: 88 }}
                                                                 >
                                                                     <Image
                                                                         source={{ uri: recipe.image }}
@@ -950,16 +952,24 @@ export default function MealPlanPage() {
                                                                         });
                                                                         setShowRecipeSelector(true);
                                                                     }}
-                                                                    className="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300 items-center"
+                                                                    className="bg-gray-50 rounded-xl p-3 flex-row items-center border border-dashed border-gray-300"
+                                                                    style={{ height: 88 }}
                                                                 >
-                                                                    <Ionicons
-                                                                        name="add-circle-outline"
-                                                                        size={32}
-                                                                        color="#9CA3AF"
-                                                                    />
-                                                                    <Text className="text-gray-500 text-sm mt-2">
-                                                                        Thêm món ăn
-                                                                    </Text>
+                                                                    <View className="w-16 h-16 rounded-lg bg-gray-100 items-center justify-center">
+                                                                        <Ionicons
+                                                                            name="add-circle-outline"
+                                                                            size={28}
+                                                                            color="#9CA3AF"
+                                                                        />
+                                                                    </View>
+                                                                    <View className="flex-1 ml-3 justify-center">
+                                                                        <Text className="text-sm font-semibold text-gray-600">
+                                                                            Thêm món ăn
+                                                                        </Text>
+                                                                        <Text className="text-xs text-gray-400 mt-1" numberOfLines={1}>
+                                                                            Nhấn để chọn món
+                                                                        </Text>
+                                                                    </View>
                                                                 </TouchableOpacity>
                                                             )}
                                                         </View>

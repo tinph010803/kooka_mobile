@@ -232,7 +232,7 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
         <View className="bg-white rounded-xl shadow-lg p-4 mb-4">
           {searchMode === "keyword" ? (
             <View>
-              <View className="flex-row gap-2 mb-3">
+              <View className="flex-row gap-2">
                 <View className="flex-1 flex-row items-center bg-gray-100 rounded-lg px-3">
                   <Ionicons name="search" size={18} color="#6B7280" />
                   <TextInput
@@ -243,84 +243,56 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
                     onSubmitEditing={handleKeywordSearch}
                     returnKeyType="search"
                   />
+                  <TouchableOpacity onPress={handleKeywordSearch}>
+                    <Ionicons name="search" size={22} color="#6366F1" />
+                  </TouchableOpacity>
                 </View>
                 <TouchableOpacity
-                  onPress={handleKeywordSearch}
-                  className="bg-indigo-500 rounded-lg px-5 justify-center"
+                  onPress={() => setIsFilterOpen(true)}
+                  className="bg-gray-100 rounded-lg px-4 justify-center items-center"
                 >
-                  <Text className="text-white font-semibold text-sm">Tìm</Text>
+                  <Ionicons name="options-outline" size={20} color="#6B7280" />
+                  {getFilterCount() > 0 && (
+                    <View className="absolute -top-1 -right-1 bg-indigo-500 rounded-full w-5 h-5 items-center justify-center">
+                      <Text className="text-white text-[10px] font-bold">
+                        {getFilterCount()}
+                      </Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               </View>
-
-              {/* Filter Button */}
-              <TouchableOpacity
-                onPress={() => setIsFilterOpen(true)}
-                className="flex-row items-center justify-center py-2.5 border border-gray-300 rounded-lg"
-              >
-                <Ionicons name="options-outline" size={18} color="#6B7280" />
-                <Text className="ml-2 text-sm text-gray-700 font-medium">
-                  Bộ lọc
-                  {getFilterCount() > 0 && ` (${getFilterCount()})`}
-                </Text>
-              </TouchableOpacity>
             </View>
           ) : (
             <View>
-              {/* Ingredient Search Row */}
-              <View className="flex-row gap-2 mb-3">
-                {/* Search Input with Suggestions */}
-                <View className="flex-1 relative">
-                  <View className="flex-row items-center bg-gray-100 rounded-lg px-3">
-                    <Ionicons name="search" size={18} color="#6B7280" />
-                    <TextInput
-                      className="flex-1 py-2.5 px-2 text-sm"
-                      placeholder="Nhập nguyên liệu (trứng, cà chua...)"
-                      value={ingredientSearchTerm}
-                      onChangeText={(text) => {
-                        setIngredientSearchTerm(text);
-                        setShowSuggestions(text.trim().length > 0);
-                      }}
-                      onFocus={() =>
-                        setShowSuggestions(ingredientSearchTerm.trim().length > 0)
-                      }
-                    />
-                  </View>
-
-                  {/* Suggestions Dropdown */}
-                  {showSuggestions && filteredSuggestions.length > 0 && (
-                    <View className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-48">
-                      {filteredSuggestions.map((suggestion, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          onPress={() => handleAddIngredient(suggestion)}
-                          className="flex-row items-center px-3 py-2.5 border-b border-gray-100"
-                        >
-                          <Ionicons name="add" size={16} color="#F97316" />
-                          <Text className="ml-2 text-sm text-gray-700">
-                            {suggestion}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
+              {/* Ingredient Search Input */}
+              <View className="flex-row gap-2">
+                <View className="flex-1 flex-row items-center bg-gray-100 rounded-lg px-3">
+                  <Ionicons name="search" size={18} color="#6B7280" />
+                  <TextInput
+                    className="flex-1 py-2.5 px-2 text-sm"
+                    placeholder="Nhập nguyên liệu (trứng, cà chua...)"
+                    value={ingredientSearchTerm}
+                    onChangeText={(text) => {
+                      setIngredientSearchTerm(text);
+                      setShowSuggestions(text.trim().length > 0);
+                    }}
+                    onFocus={() =>
+                      setShowSuggestions(ingredientSearchTerm.trim().length > 0)
+                    }
+                  />
+                  <TouchableOpacity
+                    onPress={() => setIsIngredientModalOpen(true)}
+                  >
+                    <Ionicons name="add-circle" size={24} color="#F97316" />
+                  </TouchableOpacity>
                 </View>
-
-                {/* Add Button */}
-                <TouchableOpacity
-                  onPress={() => setIsIngredientModalOpen(true)}
-                  className="bg-orange-500 rounded-lg px-4 justify-center"
-                >
-                  <Ionicons name="add" size={20} color="white" />
-                </TouchableOpacity>
-
-                {/* Filter Button */}
                 <TouchableOpacity
                   onPress={() => setIsFilterOpen(true)}
-                  className="bg-white border border-gray-300 rounded-lg px-4 justify-center relative"
+                  className="bg-gray-100 rounded-lg px-4 justify-center items-center"
                 >
-                  <Ionicons name="options-outline" size={18} color="#6B7280" />
+                  <Ionicons name="options-outline" size={20} color="#6B7280" />
                   {getFilterCount() > 0 && (
-                    <View className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-4 h-4 items-center justify-center">
+                    <View className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-5 h-5 items-center justify-center">
                       <Text className="text-white text-[10px] font-bold">
                         {getFilterCount()}
                       </Text>
@@ -329,9 +301,27 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
                 </TouchableOpacity>
               </View>
 
+              {/* Suggestions Dropdown */}
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <View className="bg-white border border-gray-200 rounded-lg shadow-lg mt-3 mb-3 max-h-48">
+                  {filteredSuggestions.map((suggestion, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => handleAddIngredient(suggestion)}
+                      className="flex-row items-center px-3 py-2.5 border-b border-gray-100"
+                    >
+                      <Ionicons name="add" size={16} color="#F97316" />
+                      <Text className="ml-2 text-sm text-gray-700">
+                        {suggestion}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
               {/* Selected Ingredients */}
               {selectedIngredients.length > 0 && (
-                <View className="mb-3">
+                <View className="mt-3 mb-3">
                   <Text className="text-xs text-gray-700 font-semibold mb-2">
                     Nguyên liệu của tôi:
                   </Text>
@@ -358,7 +348,7 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
 
               {/* Popular Ingredients when no selection */}
               {selectedIngredients.length === 0 && (
-                <View>
+                <View className="mt-3">
                   <Text className="text-xs text-gray-700 font-semibold mb-2">
                     Nguyên liệu phổ biến:
                   </Text>
