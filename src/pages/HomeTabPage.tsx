@@ -7,6 +7,7 @@ import { useNavigation } from "@react-navigation/native"
 import { useAppDispatch, useAppSelector } from "../redux/hooks"
 import { fetchTopRatedRecipes, fetchNewestRecipes, fetchPopularRecipes, fetchCategories } from "../redux/slices/recipeSlice"
 import FilterModal, { type FilterData } from "../components/FilterModal"
+import RecipeCard from "../components/RecipeCard"
 
 const { width } = Dimensions.get("window")
 
@@ -83,11 +84,7 @@ const HomeTabPage: React.FC = () => {
 
   // Helper function để format thời gian
   const formatTime = (minutes: number) => {
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60)
-      return `${hours}h`
-    }
-    return `${minutes}p`
+    return `${minutes}m`
   }
 
   // Helper function để map difficulty
@@ -130,7 +127,7 @@ const HomeTabPage: React.FC = () => {
           <TouchableOpacity onPress={() => (navigation as any).navigate("Notifications")}>
             <Bell size={22} color="#1f2937" strokeWidth={2.5} />
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => (navigation as any).navigate("Settings")}>
             <Settings size={22} color="#1f2937" strokeWidth={2.5} />
           </TouchableOpacity>
         </View>
@@ -290,36 +287,38 @@ const HomeTabPage: React.FC = () => {
             horizontal 
             showsHorizontalScrollIndicator={false} 
             className="pl-4"
-            snapToInterval={(width - 48) / 3 + 12}
+            snapToInterval={width * 0.45 + 12}
             decelerationRate="fast"
           >
             {newestRecipes.map((recipe, index) => (
-              <TouchableOpacity
+              <View
                 key={recipe._id}
-                onPress={() => handleRecipePress(recipe._id)}
                 className={index === newestRecipes.length - 1 ? "mr-4" : "mr-3"}
-                style={{ width: (width - 48) / 3 }}
+                style={{ width: width * 0.45 }}
               >
-                <View className="rounded-xl overflow-hidden shadow-md bg-white">
-                  <Image source={{ uri: recipe.image }} className="w-full h-[180px]" resizeMode="cover" />
-                  <View className="absolute top-2 left-2 bg-orange-500 px-2 py-1 rounded-md flex-row items-center gap-1">
-                    <Star size={10} color="#ffffff" fill="#ffffff" />
-                    <Text className="text-white text-xs font-bold">{recipe.rate.toFixed(1)}</Text>
-                  </View>
-                </View>
-                <View className="mt-2">
-                  <Text className="text-gray-900 text-sm font-bold" numberOfLines={2}>
-                    {recipe.name}
-                  </Text>
-                  <View className="flex-row items-center mt-1 gap-1 flex-wrap">
-                    <Clock size={10} color="#6b7280" />
-                    <Text className="text-gray-500 text-[10px]">{formatTime(recipe.time)}</Text>
-                    <Text className="text-gray-400 text-[10px]">•</Text>
-                    <UsersRound size={10} color="#6b7280" />
-                    <Text className="text-gray-500 text-[10px]">{recipe.size}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                <RecipeCard
+                  id={recipe._id}
+                  title={recipe.name}
+                  description={recipe.short}
+                  image={recipe.image}
+                  rating={recipe.rate}
+                  difficulty={getDifficulty(recipe.difficulty)}
+                  cookTime={formatTime(recipe.time)}
+                  servings={recipe.size}
+                  cuisine={recipe.cuisine?.name || "Món ăn"}
+                  ingredients={
+                    Array.isArray(recipe.ingredients)
+                      ? recipe.ingredients.slice(0, 3).map((ing) => ing.name)
+                      : []
+                  }
+                  moreIngredients={
+                    Array.isArray(recipe.ingredients) && recipe.ingredients.length > 3
+                      ? recipe.ingredients.length - 3
+                      : 0
+                  }
+                  reviews={recipe.numberOfRate || 0}
+                />
+              </View>
             ))}
           </ScrollView>
         </View>
@@ -336,36 +335,38 @@ const HomeTabPage: React.FC = () => {
             horizontal 
             showsHorizontalScrollIndicator={false} 
             className="pl-4"
-            snapToInterval={(width - 48) / 3 + 12}
+            snapToInterval={width * 0.45 + 12}
             decelerationRate="fast"
           >
             {popularRecipes.map((recipe, index) => (
-              <TouchableOpacity
+              <View
                 key={recipe._id}
-                onPress={() => handleRecipePress(recipe._id)}
                 className={index === popularRecipes.length - 1 ? "mr-4" : "mr-3"}
-                style={{ width: (width - 48) / 3 }}
+                style={{ width: width * 0.45 }}
               >
-                <View className="rounded-xl overflow-hidden shadow-md bg-white">
-                  <Image source={{ uri: recipe.image }} className="w-full h-[180px]" resizeMode="cover" />
-                  <View className="absolute top-2 left-2 bg-orange-500 px-2 py-1 rounded-md flex-row items-center gap-1">
-                    <Star size={10} color="#ffffff" fill="#ffffff" />
-                    <Text className="text-white text-xs font-bold">{recipe.rate.toFixed(1)}</Text>
-                  </View>
-                </View>
-                <View className="mt-2">
-                  <Text className="text-gray-900 text-sm font-bold" numberOfLines={2}>
-                    {recipe.name}
-                  </Text>
-                  <View className="flex-row items-center mt-1 gap-1 flex-wrap">
-                    <Clock size={10} color="#6b7280" />
-                    <Text className="text-gray-500 text-[10px]">{formatTime(recipe.time)}</Text>
-                    <Text className="text-gray-400 text-[10px]">•</Text>
-                    <UsersRound size={10} color="#6b7280" />
-                    <Text className="text-gray-500 text-[10px]">{recipe.size}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                <RecipeCard
+                  id={recipe._id}
+                  title={recipe.name}
+                  description={recipe.short}
+                  image={recipe.image}
+                  rating={recipe.rate}
+                  difficulty={getDifficulty(recipe.difficulty)}
+                  cookTime={formatTime(recipe.time)}
+                  servings={recipe.size}
+                  cuisine={recipe.cuisine?.name || "Món ăn"}
+                  ingredients={
+                    Array.isArray(recipe.ingredients)
+                      ? recipe.ingredients.slice(0, 3).map((ing) => ing.name)
+                      : []
+                  }
+                  moreIngredients={
+                    Array.isArray(recipe.ingredients) && recipe.ingredients.length > 3
+                      ? recipe.ingredients.length - 3
+                      : 0
+                  }
+                  reviews={recipe.numberOfRate || 0}
+                />
+              </View>
             ))}
           </ScrollView>
         </View>

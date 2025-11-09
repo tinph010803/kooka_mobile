@@ -1,12 +1,13 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Home, Search, Calendar, User } from "lucide-react-native";
+import { Home, Search, Calendar, User, Bot } from "lucide-react-native";
 import HomeTabPage from "../pages/HomeTabPage";
 import SearchPage from "../pages/SearchPage";
 import MealPlanPage from "../pages/MealPlanPage";
 import ProfilePage from "../pages/ProfilePage";
+import AIChatBotPage from "../pages/AIChatBotPage";
 import colors from "tailwindcss/colors";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Tab = createBottomTabNavigator();
@@ -49,6 +50,34 @@ const MainTabs = () => {
         component={SearchPage}
         options={{
           tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="AIChat"
+        component={AIChatBotPage}
+        options={{
+          tabBarIcon: ({ color, size, focused }) => (
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: focused ? colors.blue[500] : colors.blue[400],
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 20,
+                borderWidth: 4,
+                borderColor: colors.white,
+                elevation: 8,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+              }}
+            >
+              <Bot size={28} color={colors.white} />
+            </View>
+          ),
         }}
       />
       <Tab.Screen

@@ -1,8 +1,9 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+// import Constants from "expo-constants";
 // Lấy API URL từ environment variables
-const API_URL = process.env.EXPO_PUBLIC_API_GATEWAY_URL || "http://localhost:3000/api";
+ const API_URL = process.env.EXPO_PUBLIC_API_GATEWAY_URL || "http://localhost:3000/api";
+// const API_URL = Constants.expoConfig?.extra?.apiGatewayUrl || "https://api-gateway-6n1e.onrender.com/api";
 
 const axiosInstance = axios.create({
     baseURL: API_URL,

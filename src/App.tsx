@@ -10,6 +10,9 @@ import RecipeDetailPage from "./pages/RecipeDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import MyReviewsPage from "./pages/MyReviewsPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import SettingsPage from "./pages/SettingsPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import ContactPage from "./pages/ContactPage";
 import MainTabs from "./navigation/MainTabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -86,6 +89,9 @@ if (!initialRoute) {
         <Stack.Screen name="RecipeDetail" component={RecipeDetailPage} />
         <Stack.Screen name="Favorites" component={FavoritesPage} />
         <Stack.Screen name="MyReviews" component={MyReviewsPage} />
+        <Stack.Screen name="Settings" component={SettingsPage} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyPage} />
+        <Stack.Screen name="Contact" component={ContactPage} />
       </Stack.Navigator>
       <Toast config={toastConfig} />
     </NavigationContainer>

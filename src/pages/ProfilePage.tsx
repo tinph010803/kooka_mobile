@@ -125,9 +125,21 @@ const ProfilePage: React.FC = () => {
               label="Đánh Giá Của Tôi" 
               onPress={() => navigation.navigate("MyReviews" as never)}
             />
-            <MenuItem icon={Settings} label="Cài đặt" />
-            <MenuItem icon={ShieldCheck} label="Chính sách bảo mật" />
-            <MenuItem icon={HelpCircle} label="Liên hệ" />
+            <MenuItem 
+              icon={Settings} 
+              label="Cài đặt" 
+              onPress={() => navigation.navigate("Settings" as never)}
+            />
+            <MenuItem 
+              icon={ShieldCheck} 
+              label="Chính sách bảo mật" 
+              onPress={() => navigation.navigate("PrivacyPolicy" as never)}
+            />
+            <MenuItem 
+              icon={HelpCircle} 
+              label="Liên hệ" 
+              onPress={() => navigation.navigate("Contact" as never)}
+            />
           </View>
 
           <TouchableOpacity
