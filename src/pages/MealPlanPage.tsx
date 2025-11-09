@@ -10,7 +10,7 @@ import {
     Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
     fetchMealPlansByUser,
@@ -25,10 +25,37 @@ import Toast from "react-native-toast-message";
 
 type MealType = "morning" | "noon" | "evening";
 
+// Interface for AI-generated meal plan (from chatbot)
+interface MealPlanDay {
+    morning?: {
+        recipeId: string;
+        recipeName: string;
+        recipeImage?: string;
+    };
+    noon?: {
+        recipeId: string;
+        recipeName: string;
+        recipeImage?: string;
+    };
+    evening?: {
+        recipeId: string;
+        recipeName: string;
+        recipeImage?: string;
+    };
+}
+
+interface AIGeneratedPlan {
+    mealPlanType: string;
+    duration: number;
+    plans: MealPlanDay[]; // Backend returns plans array (7 days), without date
+    totalRecipes: number;
+}
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function MealPlanPage() {
     const navigation = useNavigation();
+    const route = useRoute();
     const dispatch = useAppDispatch();
     const { user } = useAppSelector((state) => state.auth);
     const { mealPlans } = useAppSelector((state) => state.mealPlans);
@@ -62,6 +89,9 @@ export default function MealPlanPage() {
     // Flag để đánh dấu plan vừa tạo
     const [justCreatedPlanId, setJustCreatedPlanId] = useState<string | null>(null);
 
+    // AI-generated meal plans (temporary storage from chatbot)
+    const [aiGeneratedPlans, setAiGeneratedPlans] = useState<MealPlanDay[] | null>(null);
+
     // Load data
     useEffect(() => {
         if (recipes.length === 0) {
@@ -71,6 +101,58 @@ export default function MealPlanPage() {
             dispatch(fetchMealPlansByUser(user._id));
         }
     }, [dispatch, user, recipes.length]);
+
+    // Handle AI-generated meal plan from chatbot
+    useEffect(() => {
+        const params = route.params as { aiGeneratedPlan?: AIGeneratedPlan } | undefined;
+        
+        if (params?.aiGeneratedPlan) {
+            console.log('🤖 Received AI-generated meal plan:', params.aiGeneratedPlan);
+            
+            // Check if user is logged in
+            if (!user?._id) {
+                Toast.show({
+                    type: 'error',
+                    text1: '⚠️ Yêu cầu đăng nhập',
+                    text2: 'Vui lòng đăng nhập để sử dụng tính năng này!',
+                });
+                // @ts-ignore
+                navigation.navigate('Login');
+                return;
+            }
+
+            // Check pending plans limit (max 3)
+            const pendingPlans = mealPlans.filter(p => p.status === 'pending');
+            if (pendingPlans.length >= 3) {
+                Toast.show({
+                    type: 'error',
+                    text1: '⚠️ Giới hạn kế hoạch',
+                    text2: 'Bạn đã có 3 kế hoạch chưa hoàn thành. Vui lòng hoàn thành hoặc xóa bớt trước khi tạo mới.',
+                });
+                
+                // Clear navigation params
+                // @ts-ignore
+                navigation.setParams({ aiGeneratedPlan: undefined });
+                return;
+            }
+
+            // Set view mode to creating
+            setViewMode('creating');
+            
+            // Save AI-generated plans temporarily (without date)
+            setAiGeneratedPlans(params.aiGeneratedPlan.plans);
+            
+            // Clear editingPlans (will be set after user selects start date)
+            setEditingPlans([]);
+            
+            // Open start date modal for user to select start date
+            setShowDatePickerModal(true);
+            
+            // Clear navigation params to prevent re-triggering
+            // @ts-ignore
+            navigation.setParams({ aiGeneratedPlan: undefined });
+        }
+    }, [route.params, user, mealPlans, navigation]);
 
     // Sorted meal plans
     const sortedMealPlans = [...mealPlans].sort((a, b) => {
@@ -1222,6 +1304,9 @@ export default function MealPlanPage() {
                                     setCurrentMonth(new Date());
                                     setSelectedStartDate(new Date());
 
+                                    // Clear AI-generated plans nếu cancel
+                                    setAiGeneratedPlans(null);
+
                                     // Restore lại state trước khi mở modal
                                     setViewMode(backupViewMode);
                                     setEditingPlans(backupEditingPlans);
@@ -1244,10 +1329,37 @@ export default function MealPlanPage() {
                                         return;
                                     }
 
-                                    // Chỉ khi XÁC NHẬN mới đổi viewMode và tạo khung trống
+                                    // Nếu có AI-generated plans, thêm date vào mỗi plan
+                                    if (aiGeneratedPlans && aiGeneratedPlans.length > 0) {
+                                        const plansWithDate: DayPlan[] = aiGeneratedPlans.map((plan, index) => {
+                                            const date = new Date(selectedStartDate);
+                                            date.setDate(selectedStartDate.getDate() + index);
+                                            
+                                            // Format date without timezone issues
+                                            const year = date.getFullYear();
+                                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                                            const day = String(date.getDate()).padStart(2, '0');
+                                            const dateString = `${year}-${month}-${day}`;
+                                            
+                                            return {
+                                                date: dateString,
+                                                morning: plan.morning || {},
+                                                noon: plan.noon || {},
+                                                evening: plan.evening || {}
+                                            };
+                                        });
+                                        
+                                        setEditingPlans(plansWithDate);
+                                        setOriginalPlans([]); // Creating mode không cần originalPlans
+                                        setAiGeneratedPlans(null); // Clear AI plans đã dùng
+                                    } else {
+                                        // Tạo plan thủ công (không có AI)
+                                        setEditingPlans([]);
+                                        setOriginalPlans([]);
+                                    }
+
+                                    // Chỉ khi XÁC NHẬN mới đổi viewMode
                                     setViewMode("creating");
-                                    setEditingPlans([]);
-                                    setOriginalPlans([]);
                                     setHasChanges(false);
                                     setShowDatePickerModal(false);
                                 }}
