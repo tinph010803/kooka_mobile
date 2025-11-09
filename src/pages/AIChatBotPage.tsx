@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -81,6 +80,7 @@ const AIChatBotPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string>('');
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -144,7 +144,10 @@ const AIChatBotPage = () => {
 
       console.log('📦 Request body:', { ...requestBody, imageBase64: requestBody.imageBase64 ? '[IMAGE_DATA]' : undefined });
 
-      const response = await axiosInstance.post('/chatbot/chat', requestBody);
+      // Chatbot API needs longer timeout (AI processing takes time)
+      const response = await axiosInstance.post('/chatbot/chat', requestBody, {
+        timeout: 60000, // 60 seconds for AI processing (meal plan generation takes time)
+      });
 
       console.log('✅ Chatbot response:', response.data);
 
