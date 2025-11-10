@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   Image,
   TouchableOpacity,
   Pressable,
+  Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { getRecipeById } from "../redux/slices/recipeSlice";
+import { WebView } from "react-native-webview";
 
 interface RouteParams {
   id: string;
@@ -24,6 +27,80 @@ export default function RecipeDetailPage() {
   const [openSteps, setOpenSteps] = useState<number[]>([]);
   const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(true);
+  const screenWidth = Dimensions.get("window").width;
+
+  // Convert Rumble URL to embed URL
+  const getRumbleEmbedUrl = (url: string): string => {
+    // If already an embed URL, return as is
+    if (url.includes('/embed/')) {
+      return url;
+    }
+
+    // Extract video ID and pub parameter from rumble.com URL
+    // Format: https://rumble.com/v71hv94-hutieu.html?mref=4notu2&mc=94do0
+    const videoIdMatch = url.match(/rumble\.com\/([a-zA-Z0-9]+)/);
+    if (videoIdMatch && videoIdMatch[1]) {
+      const videoId = videoIdMatch[1];
+
+      // Try to extract pub parameter from mref
+      const pubMatch = url.match(/[?&]mref=([^&]+)/);
+      const pubParam = pubMatch ? `?pub=${pubMatch[1]}` : '';
+
+      return `https://rumble.com/embed/${videoId}/${pubParam}`;
+    }
+    return url;
+  };
+
+  // Generate HTML for Rumble embed
+  const generateRumbleHTML = (videoUrl: string): string => {
+    const embedUrl = getRumbleEmbedUrl(videoUrl);
+    return `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>Video Player</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { 
+      background: #000;
+      overflow: hidden; 
+      height: 100%; 
+      width: 100%; 
+    }
+    .video-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: #000;
+    }
+    iframe.rumble {
+      width: 100%;
+      height: 100%;
+      border: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="video-container">
+    <iframe 
+      class="rumble" 
+      width="100%" 
+      height="100%" 
+      src="${embedUrl}" 
+      frameborder="0" 
+      allowfullscreen>
+    </iframe>
+  </div>
+</body>
+</html>
+    `;
+  };
 
   // Get recipe from Redux store
   const recipes = useAppSelector((state) => state.recipes.recipes);
@@ -151,8 +228,8 @@ export default function RecipeDetailPage() {
             </Text>
             <View className="mb-4">
               <Text className="text-white/95 text-base">
-                {showFullDescription 
-                  ? recipe.short 
+                {showFullDescription
+                  ? recipe.short
                   : recipe.short && recipe.short.length > 100
                     ? recipe.short.substring(0, 100) + "..."
                     : recipe.short
@@ -214,11 +291,10 @@ export default function RecipeDetailPage() {
                   className="flex-row items-center gap-3 py-3 px-3 bg-gray-50 rounded-lg mb-2 border border-transparent active:border-orange-200 active:bg-orange-50"
                 >
                   <View
-                    className={`h-5 w-5 rounded border-2 items-center justify-center ${
-                      checkedIngredients.includes(index)
-                        ? "bg-orange-500 border-orange-500"
-                        : "border-gray-300"
-                    }`}
+                    className={`h-5 w-5 rounded border-2 items-center justify-center ${checkedIngredients.includes(index)
+                      ? "bg-orange-500 border-orange-500"
+                      : "border-gray-300"
+                      }`}
                   >
                     {checkedIngredients.includes(index) && (
                       <Ionicons name="checkmark" size={14} color="#FFF" />
@@ -471,7 +547,7 @@ export default function RecipeDetailPage() {
           </View>
 
           {/* Video Tutorial */}
-          {recipe.video && (
+          {recipe.video && recipe.video.trim() !== "" && (
             <View className="bg-white rounded-2xl shadow-md border-2 border-orange-100 overflow-hidden mb-6">
               <View className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 border-b border-orange-200">
                 <View className="flex-row items-center gap-2">
@@ -481,20 +557,43 @@ export default function RecipeDetailPage() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity
-                className="p-4"
-                onPress={() => {
-                  // Open video in browser or external app
-                  // You can use Linking.openURL(recipe.video) here
-                }}
-              >
-                <View className="bg-gray-100 rounded-lg p-4 items-center">
-                  <Ionicons name="logo-youtube" size={48} color="#FF0000" />
-                  <Text className="text-gray-700 text-sm mt-2">
-                    Nhấn để xem video
-                  </Text>
+
+              <View className="p-4">
+                <View
+                  className="bg-black rounded-lg overflow-hidden"
+                  style={{ height: (screenWidth - 32) * 9 / 16 }}
+                >
+                  {videoLoading && (
+                    <View className="absolute inset-0 items-center justify-center bg-gray-900 z-10">
+                      <ActivityIndicator size="large" color="#F97316" />
+                      <Text className="text-white mt-2">Đang tải video...</Text>
+                    </View>
+                  )}
+
+                  <WebView
+                    source={{ html: generateRumbleHTML(recipe.video) }}
+                    style={{ flex: 1, backgroundColor: "#000" }}
+                    allowsFullscreenVideo={true}
+                    allowsInlineMediaPlayback={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    startInLoadingState={true}
+                    scalesPageToFit={true}
+                    scrollEnabled={false}
+                    bounces={false}
+                    showsHorizontalScrollIndicator={false}
+                    showsVerticalScrollIndicator={false}
+                    onLoadStart={() => setVideoLoading(true)}
+                    onLoadEnd={() => setVideoLoading(false)}
+                    onError={(syntheticEvent) => {
+                      const { nativeEvent } = syntheticEvent;
+                      console.error("WebView error:", nativeEvent);
+                      setVideoLoading(false);
+                    }}
+                  />
                 </View>
-              </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
