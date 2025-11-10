@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ export default function RecipeDetailPage() {
   const [checkedIngredients, setCheckedIngredients] = useState<number[]>([]);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions'>('instructions');
   const screenWidth = Dimensions.get("window").width;
 
   // Convert Rumble URL to embed URL
@@ -270,103 +271,64 @@ export default function RecipeDetailPage() {
 
         {/* Content */}
         <View className="px-4 py-6">
-          {/* Ingredients Section */}
+          {/* Tab Navigation + Content Container */}
           <View className="bg-white rounded-2xl shadow-lg border-2 border-orange-100 mb-6 overflow-hidden">
-            <View className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
-              <View className="flex-row items-center gap-2">
-                <View className="bg-white p-2 rounded-lg">
-                  <Ionicons name="restaurant" size={20} color="#F97316" />
-                </View>
-                <Text className="text-white text-lg font-bold">
-                  Nguyên liệu
-                </Text>
-              </View>
-            </View>
-
-            <View className="p-4">
-              {recipe.ingredients.map((ingredient, index) => (
-                <Pressable
-                  key={index}
-                  onPress={() => toggleIngredient(index)}
-                  className="flex-row items-center gap-3 py-3 px-3 bg-gray-50 rounded-lg mb-2 border border-transparent active:border-orange-200 active:bg-orange-50"
-                >
-                  <View
-                    className={`h-5 w-5 rounded border-2 items-center justify-center ${checkedIngredients.includes(index)
-                      ? "bg-orange-500 border-orange-500"
-                      : "border-gray-300"
-                      }`}
+            {/* Tab Navigation */}
+            <View className="flex-row p-1 bg-white">
+              <TouchableOpacity
+                onPress={() => setActiveTab('instructions')}
+                className={`flex-1 py-3 ${
+                  activeTab === 'instructions' 
+                    ? 'bg-orange-500 rounded-t-xl' 
+                    : 'bg-gray-100 rounded-t-xl'
+                }`}
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <Ionicons 
+                    name="list" 
+                    size={18} 
+                    color={activeTab === 'instructions' ? '#FFF' : '#6B7280'} 
+                  />
+                  <Text 
+                    className={`font-semibold text-sm ${
+                      activeTab === 'instructions' ? 'text-white' : 'text-gray-600'
+                    }`}
                   >
-                    {checkedIngredients.includes(index) && (
-                      <Ionicons name="checkmark" size={14} color="#FFF" />
-                    )}
-                  </View>
-                  <Text className="text-sm text-gray-700 font-medium flex-1">
-                    {ingredient.name}
+                    Hướng dẫn nấu
                   </Text>
-                </Pressable>
-              ))}
-
-              {/* Time Info */}
-              <View className="mt-5 pt-5 border-t-2 border-orange-100">
-                <View className="space-y-3">
-                  <View className="flex-row items-center gap-3 bg-gradient-to-br from-orange-50 to-orange-100/50 p-3 rounded-xl">
-                    <View className="w-10 h-10 rounded-full bg-orange-500 items-center justify-center">
-                      <Ionicons name="cut" size={18} color="#FFF" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-gray-500 text-xs font-medium">
-                        Chuẩn bị
-                      </Text>
-                      <Text className="text-gray-800 text-sm font-bold">
-                        {Math.floor(recipe.time * 0.3)} phút
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row items-center gap-3 bg-gradient-to-br from-orange-50 to-orange-100/50 p-3 rounded-xl mb-3">
-                    <View className="w-10 h-10 rounded-full bg-orange-500 items-center justify-center">
-                      <Ionicons name="flame" size={18} color="#FFF" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-gray-500 text-xs font-medium">
-                        Nấu
-                      </Text>
-                      <Text className="text-gray-800 text-sm font-bold">
-                        {Math.floor(recipe.time * 0.7)} phút
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row items-center gap-3 bg-gradient-to-br from-orange-50 to-orange-100/50 p-3 rounded-xl mb-3">
-                    <View className="w-10 h-10 rounded-full bg-orange-500 items-center justify-center">
-                      <Ionicons name="time" size={18} color="#FFF" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-gray-500 text-xs font-medium">
-                        Tổng
-                      </Text>
-                      <Text className="text-gray-800 text-sm font-bold">
-                        {recipe.time} phút
-                      </Text>
-                    </View>
-                  </View>
                 </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Instructions Section */}
-          <View className="bg-white rounded-2xl shadow-lg border-2 border-orange-100 mb-6 overflow-hidden">
-            <View className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
-              <View className="flex-row items-center gap-2">
-                <View className="bg-white p-2 rounded-lg">
-                  <Ionicons name="list" size={20} color="#F97316" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => setActiveTab('ingredients')}
+                className={`flex-1 py-3 ml-1 ${
+                  activeTab === 'ingredients' 
+                    ? 'bg-orange-500 rounded-t-xl' 
+                    : 'bg-gray-100 rounded-t-xl'
+                }`}
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <Ionicons 
+                    name="restaurant" 
+                    size={18} 
+                    color={activeTab === 'ingredients' ? '#FFF' : '#6B7280'} 
+                  />
+                  <Text 
+                    className={`font-semibold text-sm ${
+                      activeTab === 'ingredients' ? 'text-white' : 'text-gray-600'
+                    }`}
+                  >
+                    Nguyên liệu
+                  </Text>
                 </View>
-                <Text className="text-white text-lg font-bold">
-                  Hướng dẫn nấu
-                </Text>
-              </View>
+              </TouchableOpacity>
             </View>
 
-            <View className="p-4">
+            {/* Content Area */}
+            <View className={`${activeTab === 'instructions' ? 'bg-white' : 'bg-white'}`}>
+            {/* Instructions Section */}
+            {activeTab === 'instructions' && (
+              <View className="p-4 pt-0">
               {recipe.instructions.map((instruction, index) => (
                 <View
                   key={index}
@@ -497,6 +459,35 @@ export default function RecipeDetailPage() {
                   )}
                 </View>
               ))}
+              </View>
+            )}
+
+            {/* Ingredients Section */}
+            {activeTab === 'ingredients' && (
+              <View className="p-4 pt-0">
+                {recipe.ingredients.map((ingredient, index) => (
+                  <Pressable
+                    key={index}
+                    onPress={() => toggleIngredient(index)}
+                    className="flex-row items-center gap-3 py-3 px-3 bg-gray-50 rounded-lg mb-2 border border-transparent active:border-orange-200 active:bg-orange-50"
+                  >
+                    <View
+                      className={`h-5 w-5 rounded border-2 items-center justify-center ${checkedIngredients.includes(index)
+                        ? "bg-orange-500 border-orange-500"
+                        : "border-gray-300"
+                        }`}
+                    >
+                      {checkedIngredients.includes(index) && (
+                        <Ionicons name="checkmark" size={14} color="#FFF" />
+                      )}
+                    </View>
+                    <Text className="text-sm text-gray-700 font-medium flex-1">
+                      {ingredient.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
             </View>
           </View>
 
