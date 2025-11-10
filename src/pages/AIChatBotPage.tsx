@@ -9,6 +9,9 @@ import {
   Platform,
   Image,
   Alert,
+  Modal,
+  Pressable,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../redux/store';
 import axiosInstance from '../utils/axiosInstance';
+import * as ImagePicker from 'expo-image-picker';
 
 interface Recipe {
   id: string;
@@ -82,6 +86,9 @@ const AIChatBotPage = () => {
   const [sessionId, setSessionId] = useState<string>('');
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string>('');
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const quickSuggestions: QuickSuggestion[] = [
@@ -116,6 +123,22 @@ const AIChatBotPage = () => {
       }, 100);
     }
   }, [messages, isTyping]);
+
+  // Keyboard listeners
+  useEffect(() => {
+    const keyboardDidShow = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const keyboardDidHide = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardDidShow.remove();
+      keyboardDidHide.remove();
+    };
+  }, []);
 
   // Send message to backend API
   const sendMessageToAPI = async (userMessage: string, images?: string[]): Promise<{ message: string; recipes: Recipe[]; mealPlan?: MealPlan }> => {
@@ -187,25 +210,83 @@ const AIChatBotPage = () => {
     }
   };
 
+  const handleImagePicker = () => {
+    setShowImageOptions(true);
+  };
+
+  const handleTakePhoto = async () => {
+    setShowImageOptions(false);
+
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Lỗi', 'Cần quyền truy cập camera');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setSelectedImages([base64Image]);
+    }
+  };
+
+  const handlePickImage = async () => {
+    setShowImageOptions(false);
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setSelectedImages([base64Image]);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImages([]);
+  };
+
   const handleSendMessage = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() && selectedImages.length === 0) return;
+
+    // Dismiss keyboard when sending
+    Keyboard.dismiss();
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: message.trim(),
+      text: message.trim() || '🖼️ Đã gửi ảnh',
       sender: 'user',
       timestamp: new Date(),
+      images: selectedImages.length > 0 ? [...selectedImages] : undefined,
     };
 
     const currentMessage = message;
+    const currentImages = [...selectedImages];
 
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
+    setSelectedImages([]);
     setIsTyping(true);
 
     try {
       // Call backend API with Gemini AI
-      const { message: botResponseText, recipes, mealPlan } = await sendMessageToAPI(currentMessage);
+      const { message: botResponseText, recipes, mealPlan } = await sendMessageToAPI(currentMessage, currentImages.length > 0 ? currentImages : undefined);
 
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
@@ -237,7 +318,7 @@ const AIChatBotPage = () => {
       sender: 'user',
       timestamp: new Date(),
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
@@ -266,20 +347,30 @@ const AIChatBotPage = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
-        <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
+        <View className="flex-row justify-between items-center px-4 py-3 border-gray-200">
           <View className="flex-row items-center gap-3">
             <Image
-              source={{ uri: 'https://res.cloudinary.com/df2amyjzw/image/upload/v1760760986/bot_sc9i1l.webp' }}
+              source={{
+                uri: 'https://res.cloudinary.com/df2amyjzw/image/upload/v1760760986/bot_sc9i1l.webp',
+              }}
               className="w-10 h-10 rounded-full"
               resizeMode="cover"
             />
-            <Text className="text-lg font-semibold text-gray-900">Kooka AI</Text>
+
+            <View>
+              <Text className="text-lg font-semibold text-gray-900">Kooka AI</Text>
+              {/* Icon online */}
+              <View className="flex-row items-center">
+                <View className="w-2.5 h-2.5 rounded-full bg-green-500 mr-1" />
+                <Text className="text-xs text-gray-500">Online</Text>
+              </View>
+            </View>
           </View>
 
           <View className="flex-row gap-2">
@@ -288,6 +379,7 @@ const AIChatBotPage = () => {
             </TouchableOpacity>
           </View>
         </View>
+
 
         {/* Messages */}
         <ScrollView
@@ -402,9 +494,26 @@ const AIChatBotPage = () => {
                 // User message
                 <View className="flex-row justify-end mb-4">
                   <View className="max-w-[75%]">
-                    <View className="bg-blue-500 rounded-2xl rounded-tr-sm px-4 py-3">
-                      <Text className="text-white text-[15px] leading-5">{msg.text}</Text>
-                    </View>
+                    {/* User Images */}
+                    {msg.images && msg.images.length > 0 && (
+                      <View className="mb-2">
+                        {msg.images.map((imageUri, imgIndex) => (
+                          <View key={imgIndex} className="rounded-xl overflow-hidden mb-1">
+                            <Image
+                              source={{ uri: imageUri }}
+                              className="w-48 h-48 rounded-xl"
+                              resizeMode="cover"
+                            />
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    {/* User Text */}
+                    {msg.text && (
+                      <View className="bg-blue-500 rounded-2xl rounded-tr-sm px-4 py-3">
+                        <Text className="text-white text-[15px] leading-5">{msg.text}</Text>
+                      </View>
+                    )}
                     <Text className="text-gray-400 text-xs mt-1 text-right mr-1">
                       {formatTime(msg.timestamp)}
                     </Text>
@@ -451,10 +560,29 @@ const AIChatBotPage = () => {
         </ScrollView>
 
         {/* Input Container */}
-        <View className="px-4 py-3 bg-white border-t border-gray-200" style={{ marginBottom: 60 }}>
+        <View className="px-4 py-3 bg-white border-t border-gray-200" style={{ marginBottom: keyboardHeight > 0 ? keyboardHeight : 60 }}>
+          {/* Image Preview */}
+          {selectedImages.length > 0 && (
+            <View className="mb-3">
+              <View className="relative">
+                <Image
+                  source={{ uri: selectedImages[0] }}
+                  className="w-24 h-24 rounded-xl"
+                  resizeMode="cover"
+                />
+                <TouchableOpacity
+                  onPress={handleRemoveImage}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full items-center justify-center"
+                >
+                  <Ionicons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           <View className="flex-row items-end bg-gray-100 rounded-3xl px-3 py-2">
-            <TouchableOpacity className="p-2">
-              <Ionicons name="add-circle-outline" size={24} color="#666" />
+            <TouchableOpacity className="p-2" onPress={handleImagePicker}>
+              <Ionicons name="image-outline" size={24} color="#666" />
             </TouchableOpacity>
 
             <TextInput
@@ -468,11 +596,10 @@ const AIChatBotPage = () => {
             />
 
             <TouchableOpacity
-              className={`w-9 h-9 rounded-full items-center justify-center ml-1 ${
-                message.trim() ? 'bg-blue-500' : 'bg-gray-300'
-              }`}
+              className={`w-9 h-9 rounded-full items-center justify-center ml-1 ${message.trim() || selectedImages.length > 0 ? 'bg-blue-500' : 'bg-gray-300'
+                }`}
               onPress={handleSendMessage}
-              disabled={!message.trim()}
+              disabled={!message.trim() && selectedImages.length === 0}
             >
               <Ionicons
                 name="arrow-up"
@@ -483,6 +610,68 @@ const AIChatBotPage = () => {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Image Options Modal */}
+      <Modal
+        visible={showImageOptions}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowImageOptions(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 justify-end"
+          onPress={() => setShowImageOptions(false)}
+        >
+          <Pressable className="bg-white rounded-t-3xl pb-8" onPress={(e) => e.stopPropagation()}>
+            <View className="items-center py-3 border-b border-gray-200">
+              <View className="w-12 h-1 bg-gray-300 rounded-full" />
+            </View>
+
+            <View className="px-4 pt-4">
+              <Text className="text-lg font-semibold text-gray-900 mb-4">Chọn ảnh</Text>
+
+              {/* Take Photo Option */}
+              <TouchableOpacity
+                onPress={handleTakePhoto}
+                className="flex-row items-center bg-blue-50 rounded-2xl p-4 mb-3"
+                activeOpacity={0.7}
+              >
+                <View className="w-12 h-12 bg-blue-500 rounded-full items-center justify-center mr-4">
+                  <Ionicons name="camera" size={24} color="#fff" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-gray-900">Chụp ảnh</Text>
+                  <Text className="text-sm text-gray-600">Mở camera để chụp ảnh mới</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Pick from Gallery Option */}
+              <TouchableOpacity
+                onPress={handlePickImage}
+                className="flex-row items-center bg-green-50 rounded-2xl p-4 mb-3"
+                activeOpacity={0.7}
+              >
+                <View className="w-12 h-12 bg-green-500 rounded-full items-center justify-center mr-4">
+                  <Ionicons name="images" size={24} color="#fff" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-base font-semibold text-gray-900">Chọn từ thư viện</Text>
+                  <Text className="text-sm text-gray-600">Chọn ảnh có sẵn trong thiết bị</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                onPress={() => setShowImageOptions(false)}
+                className="bg-gray-100 rounded-2xl p-4 items-center"
+                activeOpacity={0.7}
+              >
+                <Text className="text-base font-semibold text-gray-700">Hủy</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
