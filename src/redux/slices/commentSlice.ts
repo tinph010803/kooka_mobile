@@ -171,6 +171,7 @@ export const checkUserReview = createAsyncThunk<
       rating: res.data.rating,
     };
   } catch (err: any) {
+    // Silent fail - fallback logic sẽ xử lý
     return rejectWithValue(err.response?.data?.message || "Failed to check user review");
   }
 });
