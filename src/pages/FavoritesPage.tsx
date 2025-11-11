@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { ChevronLeft, Clock, Users, Star, Trash2 } from "lucide-react-native";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { toggleFavorite } from "../redux/slices/favoriteSlice";
 import axiosInstance from "../utils/axiosInstance";
 import Toast from "react-native-toast-message";
 
@@ -107,7 +108,9 @@ const FavoritesPage: React.FC = () => {
 
   const handleRemoveFavorite = async (favoriteId: string, recipeId: string) => {
     try {
-      await axiosInstance.post("/favorites/toggle", { recipeId });
+      // Dùng Redux action để đồng bộ state
+      await dispatch(toggleFavorite({ recipeId })).unwrap();
+      
       // Remove from local state
       setFavorites(favorites.filter((fav) => fav._id !== favoriteId));
       
