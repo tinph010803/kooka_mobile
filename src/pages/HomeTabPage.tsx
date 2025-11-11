@@ -5,9 +5,13 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import { Bell, Settings, Play, UsersRound, MapPinned, Clock, Star } from "lucide-react-native"
 import { useNavigation } from "@react-navigation/native"
 import { useAppDispatch, useAppSelector } from "../redux/hooks"
-import { fetchTopRatedRecipes, fetchNewestRecipes, fetchPopularRecipes, fetchCategories } from "../redux/slices/recipeSlice"
+import { fetchTopRatedRecipes, fetchNewestRecipes, fetchPopularRecipes, fetchCategories, fetchTrendingRecipes } from "../redux/slices/recipeSlice"
+import { fetchMostFavorited } from "../redux/slices/favoriteSlice"
+import { fetchTopComments, fetchNewestComments } from "../redux/slices/commentSlice"
 import FilterModal, { type FilterData } from "../components/FilterModal"
 import RecipeCard from "../components/RecipeCard"
+import TopCommentsSection from "../components/TopCommentsSection"
+import ThreeColumnSection from "../components/ThreeColumnSection"
 
 const { width } = Dimensions.get("window")
 
@@ -25,7 +29,9 @@ const HomeTabPage: React.FC = () => {
   const scrollViewRef = useRef<ScrollView>(null)
 
   // Lấy data từ Redux
-  const { topRatedRecipes, newestRecipes, popularRecipes, categories, loading } = useAppSelector((state) => state.recipes)
+  const { topRatedRecipes, newestRecipes, popularRecipes, categories, trendingRecipes, loading } = useAppSelector((state) => state.recipes)
+  const { mostFavorited } = useAppSelector((state) => state.favorites)
+  const { topComments, newestComments } = useAppSelector((state) => state.comments)
 
   // Fetch data khi component mount
   useEffect(() => {
@@ -33,6 +39,10 @@ const HomeTabPage: React.FC = () => {
     dispatch(fetchNewestRecipes(6))
     dispatch(fetchPopularRecipes(6))
     dispatch(fetchCategories())
+    dispatch(fetchTrendingRecipes())
+    dispatch(fetchMostFavorited())
+    dispatch(fetchTopComments())
+    dispatch(fetchNewestComments())
   }, [dispatch])
 
   // Scroll đến vị trí giữa khi có data
@@ -370,6 +380,17 @@ const HomeTabPage: React.FC = () => {
             ))}
           </ScrollView>
         </View>
+
+        {/* Top Comments Section */}
+        <TopCommentsSection comments={topComments} loading={loading} />
+
+        {/* Three Columns Section - Scroll ngang */}
+        <ThreeColumnSection 
+          trendingRecipes={trendingRecipes}
+          mostFavorited={mostFavorited}
+          newestComments={newestComments}
+          loading={loading}
+        />
 
         <View className="pb-20" />
       </ScrollView>
