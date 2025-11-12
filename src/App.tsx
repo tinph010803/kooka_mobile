@@ -22,6 +22,8 @@ import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor, RootState } from "./redux/store";
 import { ActivityIndicator, View, Text } from "react-native";
 import Toast from "react-native-toast-message";
+import { useAppDispatch } from "./redux/hooks";
+import { fetchRecipes } from "./redux/slices/recipeSlice";
 
 const Stack = createNativeStackNavigator();
 
@@ -49,8 +51,20 @@ const toastConfig = {
 
 // Component Navigation riêng để có thể sử dụng Redux hooks
 function AppNavigation() {
+  const dispatch = useAppDispatch();
   const { user, token } = useSelector((state: RootState) => state.auth);
+  const { recipes } = useSelector((state: RootState) => state.recipes);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+
+  // Fetch recipes ngay khi app khởi động (chỉ fetch nếu chưa có data)
+  useEffect(() => {
+    if (recipes.length === 0) {
+      console.log('🚀 App started - Fetching all recipes...');
+      dispatch(fetchRecipes());
+    } else {
+      console.log('✅ Recipes already loaded:', recipes.length, 'recipes');
+    }
+  }, [dispatch, recipes.length]);
 
   useEffect(() => {
     // Kiểm tra xem user đã đăng nhập chưa

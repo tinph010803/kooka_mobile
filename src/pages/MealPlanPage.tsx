@@ -92,9 +92,10 @@ export default function MealPlanPage() {
     // AI-generated meal plans (temporary storage from chatbot)
     const [aiGeneratedPlans, setAiGeneratedPlans] = useState<MealPlanDay[] | null>(null);
 
-    // Load data
+    // Load data - fetch recipes CHỈ KHI chưa có data
     useEffect(() => {
         if (recipes.length === 0) {
+            console.log('🔄 MealPlanPage - Fetching recipes...');
             dispatch(fetchRecipes());
         }
         if (user?._id) {

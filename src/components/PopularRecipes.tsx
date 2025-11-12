@@ -8,26 +8,25 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation } from "@react-navigation/native";
 import type { AppDispatch, RootState } from "../redux/store";
-import { fetchRecipes } from "../redux/slices/recipeSlice";
+import { fetchPopularRecipes } from "../redux/slices/recipeSlice";
 import { checkMultipleRecipes } from "../redux/slices/favoriteSlice";
 import RecipeCard from "./RecipeCard";
 
 const PopularRecipes: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation();
-  const { recipes, loading } = useSelector((state: RootState) => state.recipes);
+  const { popularRecipes, loading } = useSelector((state: RootState) => state.recipes);
   const user = useSelector((state: RootState) => state.auth.user);
 
   // Memoize recipe IDs to prevent unnecessary recalculations
   const displayedRecipeIds = useMemo(() => {
-    return recipes
-      .slice(0, 6)
+    return popularRecipes
       .map((recipe) => recipe._id)
       .join(",");
-  }, [recipes]);
+  }, [popularRecipes]);
 
   useEffect(() => {
-    dispatch(fetchRecipes());
+    dispatch(fetchPopularRecipes(6));
   }, [dispatch]);
 
   // Check favorites for all recipes when user is logged in
@@ -40,7 +39,7 @@ const PopularRecipes: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, displayedRecipeIds, dispatch]);
 
-  console.log("PopularRecipes - recipes:", recipes);
+  console.log("PopularRecipes - popularRecipes:", popularRecipes);
 
   return (
     <View className="py-6 px-4 bg-white pb-8">
@@ -64,7 +63,7 @@ const PopularRecipes: React.FC = () => {
         ) : (
           <>
             <View className="flex-row flex-wrap justify-between mb-4">
-              {recipes.slice(0, 6).map((recipe) => (
+              {popularRecipes.map((recipe) => (
                 <View 
                   key={recipe._id}
                   className="mb-3"
@@ -98,7 +97,7 @@ const PopularRecipes: React.FC = () => {
             </View>
 
             {/* View All Button */}
-            {recipes.length > 6 && (
+            {popularRecipes.length > 0 && (
               <View className="items-center">
                 <TouchableOpacity 
                   className="bg-orange-500 rounded-xl px-8 py-3 flex-row items-center shadow-md"
