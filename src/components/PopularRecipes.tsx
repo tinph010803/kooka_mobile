@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
 import type { AppDispatch, RootState } from "../redux/store";
 import { fetchRecipes } from "../redux/slices/recipeSlice";
 import { checkMultipleRecipes } from "../redux/slices/favoriteSlice";
@@ -13,6 +14,7 @@ import RecipeCard from "./RecipeCard";
 
 const PopularRecipes: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigation = useNavigation();
   const { recipes, loading } = useSelector((state: RootState) => state.recipes);
   const user = useSelector((state: RootState) => state.auth.user);
 
@@ -98,7 +100,11 @@ const PopularRecipes: React.FC = () => {
             {/* View All Button */}
             {recipes.length > 6 && (
               <View className="items-center">
-                <TouchableOpacity className="bg-orange-500 rounded-xl px-8 py-3 flex-row items-center shadow-md">
+                <TouchableOpacity 
+                  className="bg-orange-500 rounded-xl px-8 py-3 flex-row items-center shadow-md"
+                  onPress={() => (navigation as any).navigate("AllRecipes", { type: "all" })}
+                  activeOpacity={0.7}
+                >
                   <Text className="text-white font-semibold text-sm mr-2">
                     Xem tất cả món ăn
                   </Text>

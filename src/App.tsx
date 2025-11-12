@@ -13,6 +13,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import ContactPage from "./pages/ContactPage";
+import AllRecipesPage from "./pages/AllRecipesPage";
 import MainTabs from "./navigation/MainTabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -92,6 +93,13 @@ if (!initialRoute) {
         <Stack.Screen name="Settings" component={SettingsPage} />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyPage} />
         <Stack.Screen name="Contact" component={ContactPage} />
+        <Stack.Screen 
+          name="AllRecipes" 
+          component={AllRecipesPage}
+          options={{
+            animation: "fade_from_bottom",
+          }}
+        />
       </Stack.Navigator>
       <Toast config={toastConfig} />
     </NavigationContainer>

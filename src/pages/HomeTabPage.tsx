@@ -8,7 +8,6 @@ import { useAppDispatch, useAppSelector } from "../redux/hooks"
 import { fetchTopRatedRecipes, fetchNewestRecipes, fetchPopularRecipes, fetchCategories, fetchTrendingRecipes } from "../redux/slices/recipeSlice"
 import { fetchMostFavorited } from "../redux/slices/favoriteSlice"
 import { fetchTopComments, fetchNewestComments } from "../redux/slices/commentSlice"
-import FilterModal, { type FilterData } from "../components/FilterModal"
 import RecipeCard from "../components/RecipeCard"
 import TopCommentsSection from "../components/TopCommentsSection"
 import ThreeColumnSection from "../components/ThreeColumnSection"
@@ -18,14 +17,7 @@ const { width } = Dimensions.get("window")
 const HomeTabPage: React.FC = () => {
   const navigation = useNavigation()
   const dispatch = useAppDispatch()
-  const [activeCategory, setActiveCategory] = useState("recommended") // Mặc định "Đề xuất"
   const [currentSlide, setCurrentSlide] = useState(0)
-  const [showFilterModal, setShowFilterModal] = useState(false)
-  const [filters, setFilters] = useState<FilterData>({
-    selectedCategory: "",
-    selectedTags: [],
-    selectedCuisine: "",
-  })
   const scrollViewRef = useRef<ScrollView>(null)
 
   // Lấy data từ Redux
@@ -82,16 +74,6 @@ const HomeTabPage: React.FC = () => {
     ;(navigation as any).navigate("RecipeDetail", { id: recipeId })
   }
 
-  const handleApplyFilters = (newFilters: FilterData) => {
-    setFilters(newFilters)
-    // Cập nhật activeCategory nếu có category được chọn
-    if (newFilters.selectedCategory) {
-      setActiveCategory(newFilters.selectedCategory)
-    }
-    // TODO: Fetch filtered recipes based on filters
-    console.log("Applied filters:", newFilters)
-  }
-
   // Helper function để format thời gian
   const formatTime = (minutes: number) => {
     return `${minutes}m`
@@ -144,57 +126,8 @@ const HomeTabPage: React.FC = () => {
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Categories - Chỉ 4 button: Đề xuất, Bữa sáng, Bữa trưa, Tất cả */}
-        <View className="px-4 mt-4">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {/* Đề xuất */}
-            <TouchableOpacity
-              onPress={() => setActiveCategory("recommended")}
-              className={`mr-2 px-4 py-2 rounded-full border ${activeCategory === "recommended" ? "bg-orange-500 border-orange-500" : "border-gray-300 bg-transparent"}`}
-            >
-              <Text className={`font-semibold text-sm ${activeCategory === "recommended" ? "text-white" : "text-gray-700"}`}>
-                Đề xuất
-              </Text>
-            </TouchableOpacity>
-            
-            {/* Bữa sáng */}
-            {categories.find(c => c.name === "Bữa sáng") && (
-              <TouchableOpacity
-                onPress={() => setActiveCategory(categories.find(c => c.name === "Bữa sáng")?._id || "")}
-                className={`mr-2 px-4 py-2 rounded-full border ${activeCategory === categories.find(c => c.name === "Bữa sáng")?._id ? "bg-orange-500 border-orange-500" : "border-gray-300 bg-transparent"}`}
-              >
-                <Text className={`font-semibold text-sm ${activeCategory === categories.find(c => c.name === "Bữa sáng")?._id ? "text-white" : "text-gray-700"}`}>
-                  Bữa sáng
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-            {/* Bữa trưa */}
-            {categories.find(c => c.name === "Bữa trưa") && (
-              <TouchableOpacity
-                onPress={() => setActiveCategory(categories.find(c => c.name === "Bữa trưa")?._id || "")}
-                className={`mr-2 px-4 py-2 rounded-full border ${activeCategory === categories.find(c => c.name === "Bữa trưa")?._id ? "bg-orange-500 border-orange-500" : "border-gray-300 bg-transparent"}`}
-              >
-                <Text className={`font-semibold text-sm ${activeCategory === categories.find(c => c.name === "Bữa trưa")?._id ? "text-white" : "text-gray-700"}`}>
-                  Bữa trưa
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-            {/* Tất cả - Mở filter modal */}
-            <TouchableOpacity
-              onPress={() => setShowFilterModal(true)}
-              className="mr-2 px-4 py-2 rounded-full border border-gray-300 bg-transparent"
-            >
-              <Text className="font-semibold text-sm text-gray-700">
-                Tất cả ▼
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
         {/* Main Featured Recipe Carousel */}
-        <View className="mt-6">
+        <View className="mt-4">
           <ScrollView
             ref={scrollViewRef}
             horizontal
@@ -289,7 +222,7 @@ const HomeTabPage: React.FC = () => {
         <View className="mt-8">
           <View className="px-4 mb-4 flex-row items-center justify-between">
             <Text className="text-gray-900 text-xl font-bold">Món Ăn Mới</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => (navigation as any).navigate("AllRecipes", { type: "new" })}>
               <Text className="text-orange-500 text-sm font-semibold">Xem thêm →</Text>
             </TouchableOpacity>
           </View>
@@ -337,7 +270,7 @@ const HomeTabPage: React.FC = () => {
         <View className="mt-8">
           <View className="px-4 mb-4 flex-row items-center justify-between">
             <Text className="text-gray-900 text-xl font-bold">Món Ăn Phổ Biến</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => (navigation as any).navigate("AllRecipes", { type: "popular" })}>
               <Text className="text-orange-500 text-sm font-semibold">Xem thêm →</Text>
             </TouchableOpacity>
           </View>
@@ -394,15 +327,6 @@ const HomeTabPage: React.FC = () => {
 
         <View className="pb-20" />
       </ScrollView>
-
-      {/* Filter Modal */}
-      <FilterModal
-        isOpen={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        onApply={handleApplyFilters}
-        initialFilters={filters}
-        colorScheme="orange"
-      />
     </SafeAreaView>
   )
 }

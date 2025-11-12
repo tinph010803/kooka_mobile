@@ -7,7 +7,7 @@ export default {
     extra: {
       ...appJson.expo.extra,
       // API URLs - Đọc từ .env file hoặc dùng default
-      apiGatewayUrl: process.env.EXPO_PUBLIC_API_GATEWAY_URL || "https://api-gateway-6n1e.onrender.com/api",
+      apiGatewayUrl: process.env.EXPO_PUBLIC_API_GATEWAY_URL || "https://api.kooka.site/api",
       pythonCookService: process.env.EXPO_PUBLIC_PYTHON_COOK_SERVICE || "https://python-cook-service.onrender.com",
       recipeService: process.env.EXPO_PUBLIC_RECIPE_SERVICE || "https://recipe-service-l6yp.onrender.com",
       mealplanService: process.env.EXPO_PUBLIC_MEALPLAN_SERVICE || "https://mealplan-service.onrender.com",
