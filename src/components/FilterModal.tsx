@@ -160,21 +160,21 @@ const FilterModal: React.FC<FilterModalProps> = ({
                         tags.map((tag) => (
                           <TouchableOpacity
                             key={tag._id}
-                            onPress={() => handleTagToggle(tag.name)}
+                            onPress={() => handleTagToggle(tag._id)}
                             className={`px-4 py-2 rounded-full border ${
-                              selectedTags.includes(tag.name)
+                              selectedTags.includes(tag._id)
                                 ? "border-transparent"
                                 : "border-gray-300 bg-white"
                             }`}
                             style={
-                              selectedTags.includes(tag.name)
+                              selectedTags.includes(tag._id)
                                 ? { backgroundColor: currentColors.primary }
                                 : {}
                             }
                           >
                             <Text
                               className={`text-sm font-medium ${
-                                selectedTags.includes(tag.name)
+                                selectedTags.includes(tag._id)
                                   ? "text-white"
                                   : "text-gray-700"
                               }`}
@@ -203,7 +203,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   className="border border-gray-300 rounded-xl bg-white px-4 py-3.5 flex-row items-center justify-between"
                 >
                   <Text className={selectedCategory ? "text-gray-900" : "text-gray-500"}>
-                    {selectedCategory || "Tất cả danh mục"}
+                    {selectedCategory 
+                      ? categories.find(c => c._id === selectedCategory)?.name || "Tất cả danh mục"
+                      : "Tất cả danh mục"}
                   </Text>
                   <Ionicons name="chevron-down" size={20} color="#6B7280" />
                 </TouchableOpacity>
@@ -219,7 +221,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   className="border border-gray-300 rounded-xl bg-white px-4 py-3.5 flex-row items-center justify-between"
                 >
                   <Text className={selectedCuisine ? "text-gray-900" : "text-gray-500"}>
-                    {selectedCuisine || "Tất cả ẩm thực"}
+                    {selectedCuisine 
+                      ? cuisines.find(c => c._id === selectedCuisine)?.name || "Tất cả ẩm thực"
+                      : "Tất cả ẩm thực"}
                   </Text>
                   <Ionicons name="chevron-down" size={20} color="#6B7280" />
                 </TouchableOpacity>
@@ -293,7 +297,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   <TouchableOpacity
                     key={cat._id}
                     onPress={() => {
-                      setSelectedCategory(cat.name);
+                      setSelectedCategory(cat._id);
                       setShowCategoryPicker(false);
                     }}
                     className="py-3 border-b border-gray-200"
@@ -350,7 +354,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   <TouchableOpacity
                     key={cuisine._id}
                     onPress={() => {
-                      setSelectedCuisine(cuisine.name);
+                      setSelectedCuisine(cuisine._id);
                       setShowCuisinePicker(false);
                     }}
                     className="py-3 border-b border-gray-200"

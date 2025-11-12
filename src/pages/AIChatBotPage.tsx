@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
   Keyboard,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,6 +77,71 @@ interface QuickSuggestion {
   text: string;
   icon: string;
 }
+
+// Typing Indicator Component với animation
+const TypingIndicator = () => {
+  const dot1 = useRef(new Animated.Value(0)).current;
+  const dot2 = useRef(new Animated.Value(0)).current;
+  const dot3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animateSequence = () => {
+      Animated.sequence([
+        Animated.timing(dot1, {
+          toValue: -8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dot1, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+
+        Animated.timing(dot2, {
+          toValue: -8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dot2, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+
+        Animated.timing(dot3, {
+          toValue: -8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dot3, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => animateSequence()); // lặp lại
+    };
+
+    animateSequence();
+  }, [dot1, dot2, dot3]);
+
+  return (
+    <View className="flex-row gap-1.5">
+      <Animated.View
+        style={{ transform: [{ translateY: dot1 }] }}
+        className="w-2 h-2 rounded-full bg-gray-400"
+      />
+      <Animated.View
+        style={{ transform: [{ translateY: dot2 }] }}
+        className="w-2 h-2 rounded-full bg-gray-400"
+      />
+      <Animated.View
+        style={{ transform: [{ translateY: dot3 }] }}
+        className="w-2 h-2 rounded-full bg-gray-400"
+      />
+    </View>
+  );
+};
 
 const AIChatBotPage = () => {
   const navigation = useNavigation();
@@ -402,9 +468,6 @@ const AIChatBotPage = () => {
                     <View className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
                       <Text className="text-gray-800 text-[15px] leading-5">{msg.text}</Text>
                     </View>
-                    <Text className="text-gray-400 text-xs mt-1 ml-1">
-                      {formatTime(msg.timestamp)}
-                    </Text>
 
                     {/* Recipe Cards */}
                     {msg.recipes && msg.recipes.length > 0 && (
@@ -415,7 +478,7 @@ const AIChatBotPage = () => {
                               key={recipe.id}
                               onPress={() => {
                                 // @ts-ignore
-                                navigation.navigate('RecipeDetail', { recipeId: recipe.id });
+                                navigation.navigate('RecipeDetail', { id: recipe.id });
                               }}
                               className="bg-white border border-gray-200 rounded-lg p-2 flex-row items-center gap-2"
                             >
@@ -488,6 +551,11 @@ const AIChatBotPage = () => {
                         </TouchableOpacity>
                       </View>
                     )}
+
+                    {/* Timestamp - Đặt sau cùng */}
+                    <Text className="text-gray-400 text-xs mt-2 ml-1">
+                      {formatTime(msg.timestamp)}
+                    </Text>
                   </View>
                 </View>
               ) : (
@@ -532,11 +600,7 @@ const AIChatBotPage = () => {
                 resizeMode="cover"
               />
               <View className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
-                <View className="flex-row gap-1.5">
-                  <View className="w-2 h-2 rounded-full bg-gray-400" />
-                  <View className="w-2 h-2 rounded-full bg-gray-400" />
-                  <View className="w-2 h-2 rounded-full bg-gray-400" />
-                </View>
+                <TypingIndicator />
               </View>
             </View>
           )}

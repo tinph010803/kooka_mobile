@@ -270,7 +270,7 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
                   <Ionicons name="search" size={18} color="#6B7280" />
                   <TextInput
                     className="flex-1 py-2.5 px-2 text-sm"
-                    placeholder="Nhập nguyên liệu (trứng, cà chua...)"
+                    placeholder="Nhập nguyên liệu(trứng, cà chua...)"
                     value={ingredientSearchTerm}
                     onChangeText={(text) => {
                       setIngredientSearchTerm(text);
