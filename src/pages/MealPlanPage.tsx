@@ -163,10 +163,9 @@ export default function MealPlanPage() {
         }
     }, [route.params, user, mealPlans, navigation]);
 
-    // Sorted meal plans
+    // Sort meal plans by startDate ascending (oldest first)
+    // Completed plans naturally come first (older dates), pending plans come after (newer dates)
     const sortedMealPlans = [...mealPlans].sort((a, b) => {
-        if (a.status === "pending" && b.status !== "pending") return -1;
-        if (a.status !== "pending" && b.status === "pending") return 1;
         return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
     });
 
@@ -189,19 +188,26 @@ export default function MealPlanPage() {
             }
         } else if (viewMode === "browse") {
             // Chỉ auto-switch sang viewing khi đang ở browse mode
+            // Ưu tiên hiển thị pending plan đầu tiên
+            const firstPendingIndex = sortedMealPlans.findIndex(p => p.status === 'pending');
+            const targetIndex = firstPendingIndex !== -1 ? firstPendingIndex : 0;
+            
             setViewMode("viewing");
-            setCurrentPlanIndex(0);
-            const firstPlan = sortedMealPlans[0];
-            const plans = firstPlan?.plans || [];
+            setCurrentPlanIndex(targetIndex);
+            const targetPlan = sortedMealPlans[targetIndex];
+            const plans = targetPlan?.plans || [];
             setEditingPlans(plans);
             setOriginalPlans(JSON.parse(JSON.stringify(plans)));
             setHasChanges(false);
         } else if (viewMode === "viewing" && !currentPlan) {
-            // Nếu đang viewing nhưng currentPlan không tồn tại, fallback về plan đầu tiên
+            // Nếu đang viewing nhưng currentPlan không tồn tại, fallback về pending plan đầu tiên
             if (sortedMealPlans.length > 0) {
-                setCurrentPlanIndex(0);
-                const firstPlan = sortedMealPlans[0];
-                const plans = firstPlan?.plans || [];
+                const firstPendingIndex = sortedMealPlans.findIndex(p => p.status === 'pending');
+                const targetIndex = firstPendingIndex !== -1 ? firstPendingIndex : 0;
+                
+                setCurrentPlanIndex(targetIndex);
+                const targetPlan = sortedMealPlans[targetIndex];
+                const plans = targetPlan?.plans || [];
                 setEditingPlans(plans);
                 setOriginalPlans(JSON.parse(JSON.stringify(plans)));
             }
@@ -712,13 +718,15 @@ export default function MealPlanPage() {
             const remainingPlans = sortedMealPlans.filter(p => p._id !== deletedPlanId);
 
             if (remainingPlans.length > 0) {
-                // Còn plans khác, hiển thị plan đầu tiên
-                const nextPlan = remainingPlans[0];
+                // Ưu tiên hiển thị pending plan đầu tiên sau khi xóa
+                const firstPendingIndex = remainingPlans.findIndex(p => p.status === 'pending');
+                const targetIndex = firstPendingIndex !== -1 ? firstPendingIndex : 0;
+                const targetPlan = remainingPlans[targetIndex];
 
                 setViewMode("viewing");
-                setCurrentPlanIndex(0);
-                setEditingPlans(nextPlan.plans);
-                setOriginalPlans(JSON.parse(JSON.stringify(nextPlan.plans)));
+                setCurrentPlanIndex(targetIndex);
+                setEditingPlans(targetPlan.plans);
+                setOriginalPlans(JSON.parse(JSON.stringify(targetPlan.plans)));
                 setHasChanges(false);
             } else {
                 // Không còn plan nào, chuyển sang browse mode
