@@ -61,7 +61,8 @@ export interface Recipe {
 }
 
 interface RecipeState {
-  recipes: Recipe[]; // Tất cả recipes từ fetchRecipes
+  recipes: Recipe[]; // Tất cả recipes từ fetchRecipes (KHÔNG có instructions)
+  currentRecipe: Recipe | null; // Recipe đang xem chi tiết (CÓ đầy đủ instructions)
   searchResults: Recipe[]; // Kết quả tìm kiếm từ searchRecipes/searchRecipesByKeyword
   topRatedRecipes: Recipe[]; // Top-rated recipes cho banner
   newestRecipes: Recipe[]; // Newest recipes cho section Món Ăn Mới
@@ -82,6 +83,7 @@ interface RecipeState {
 
 const initialState: RecipeState = {
   recipes: [],
+  currentRecipe: null,
   searchResults: [],
   topRatedRecipes: [],
   newestRecipes: [],
@@ -505,12 +507,16 @@ const recipeSlice = createSlice({
         state.loading = false;
       })
       .addCase(getRecipeById.fulfilled, (state, action: PayloadAction<Recipe>) => {
+        // Lưu vào currentRecipe để RecipeDetail dùng (CÓ đầy đủ instructions)
+        state.currentRecipe = action.payload;
+        
+        // Cập nhật hoặc thêm vào recipes array nếu cần
         const index = state.recipes.findIndex((r) => r._id === action.payload._id);
         if (index !== -1) {
-          // Cập nhật recipe đã tồn tại
+          // Cập nhật recipe đã tồn tại với data đầy đủ
           state.recipes[index] = action.payload;
         } else {
-          // Thêm recipe mới
+          // Thêm recipe mới (trường hợp user truy cập trực tiếp URL)
           state.recipes.push(action.payload);
         }
         state.loading = false;

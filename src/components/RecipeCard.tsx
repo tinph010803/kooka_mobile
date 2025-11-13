@@ -57,8 +57,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
         {/* Rating Badge */}
         <View className="absolute top-2 left-2 flex-row items-center bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg">
-          <Ionicons name="star" size={12} color="#FBBF24" />
-          <Text className="ml-1 text-xs font-bold text-gray-900">
+          <Ionicons name="star" size={11} color="#FBBF24" />
+          <Text className="ml-1 text-[11px] font-bold text-gray-900">
             {(rating || 0).toFixed(1)}
           </Text>
         </View>
@@ -69,7 +69,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           style={{ backgroundColor: difficultyColor.bg }}
         >
           <Text
-            className="text-[10px] font-semibold"
+            className="text-[9px] font-semibold"
             style={{ color: difficultyColor.text }}
           >
             {difficulty}
@@ -78,22 +78,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       </View>
 
       {/* Content */}
-      <View className="p-3">
-        <Text className="text-sm font-bold text-gray-900 mb-2" numberOfLines={2}>
+      <View className="p-2.5">
+        <Text className="text-xs font-bold text-gray-900 mb-1.5 leading-tight" numberOfLines={1}>
           {title}
         </Text>
 
         {/* Meta Info */}
-        <View className="flex-row items-center flex-wrap">
-          <View className="flex-row items-center mr-3">
-            <Ionicons name="time-outline" size={12} color="#6B7280" />
-            <Text className="ml-1 text-xs text-gray-600">{cookTime}</Text>
+        <View className="flex-row items-center flex-wrap gap-2">
+          <View className="flex-row items-center">
+            <Ionicons name="time-outline" size={11} color="#6B7280" />
+            <Text className="ml-0.5 text-[10px] text-gray-600">{cookTime}</Text>
           </View>
-          <View className="flex-row items-center mr-3">
-            <Ionicons name="people-outline" size={12} color="#6B7280" />
-            <Text className="ml-1 text-xs text-gray-600">{servings}</Text>
+          <View className="flex-row items-center">
+            <Ionicons name="people-outline" size={11} color="#6B7280" />
+            <Text className="ml-0.5 text-[10px] text-gray-600">{servings}</Text>
           </View>
-          <Text className="text-xs text-gray-600">{cuisine}</Text>
+          <Text className="text-[10px] text-gray-600">{cuisine}</Text>
         </View>
       </View>
     </TouchableOpacity>
