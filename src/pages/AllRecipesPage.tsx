@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   TextInput,
   Dimensions,
 } from "react-native";
@@ -22,6 +21,7 @@ import {
 } from "../redux/slices/recipeSlice";
 import type { Recipe as ReduxRecipe } from "../redux/slices/recipeSlice";
 import FilterModal, { type FilterData } from "../components/FilterModal";
+import RecipeCard from "../components/RecipeCard";
 
 const { width } = Dimensions.get("window");
 
@@ -120,7 +120,7 @@ const AllRecipesPage: React.FC = () => {
       id: recipe._id,
       title: recipe.name,
       image: recipe.image,
-      duration: `${recipe.time} phút`,
+      duration: `${recipe.time}m`,
       difficulty: recipe.difficulty,
       rating: recipe.rate,
       reviews: recipe.numberOfRate,
@@ -200,93 +200,6 @@ const AllRecipesPage: React.FC = () => {
           gradientColors: ["#FCE7F3", "#F3E8FF", "#FCE7F3"],
           buttonColor: "#DB2777",
         };
-
-  const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
-    return (
-      <TouchableOpacity
-        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-        style={{ width: (width - 48) / 2 }}
-        activeOpacity={0.7}
-        onPress={() => (navigation as any).navigate("RecipeDetail", { id: recipe.id })}
-      >
-        {/* Image */}
-        <View className="relative">
-          <Image
-            source={{ uri: recipe.image }}
-            className="w-full h-32"
-            resizeMode="cover"
-          />
-
-          {/* Rating Badge */}
-          <View className="absolute top-2 left-2 flex-row items-center bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg">
-            <Ionicons name="star" size={12} color="#FBBF24" />
-            <Text className="ml-1 text-xs font-bold text-gray-900">
-              {recipe.rating?.toFixed(1) || "0.0"}
-            </Text>
-          </View>
-
-          {/* Difficulty Badge */}
-          <View
-            className="absolute top-2 right-2 px-2 py-1 rounded-lg"
-            style={{
-              backgroundColor:
-                recipe.difficulty === "Dễ"
-                  ? "#D1FAE5"
-                  : recipe.difficulty === "Khó"
-                    ? "#FEE2E2"
-                    : "#FEF3C7",
-            }}
-          >
-            <Text
-              className="text-[10px] font-semibold"
-              style={{
-                color:
-                  recipe.difficulty === "Dễ"
-                    ? "#065F46"
-                    : recipe.difficulty === "Khó"
-                      ? "#991B1B"
-                      : "#92400E",
-              }}
-            >
-              {recipe.difficulty}
-            </Text>
-          </View>
-        </View>
-
-        {/* Content */}
-        <View className="p-3">
-          <Text className="text-sm font-bold text-gray-900 mb-2" numberOfLines={1} ellipsizeMode="tail">
-            {recipe.title}
-          </Text>
-
-          {/* Meta Info */}
-          <View className="flex-row items-center flex-wrap mb-2">
-            <View className="flex-row items-center mr-2">
-              <Ionicons name="time-outline" size={12} color="#6B7280" />
-              <Text className="ml-1 text-xs text-gray-600">{recipe.duration}</Text>
-            </View>
-            <View className="flex-row items-center mr-2">
-              <Ionicons name="people-outline" size={12} color="#6B7280" />
-              <Text className="ml-1 text-xs text-gray-600">{recipe.servings}</Text>
-            </View>
-            {/* Cuisine - Quốc gia */}
-            {recipe.cuisine && (
-              <View className="flex-row items-center">
-                <Text className="ml-1 text-xs text-gray-600" numberOfLines={1}>
-                  {recipe.cuisine}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Reviews */}
-          <Text className="text-xs text-gray-600">
-            {recipe.reviews ? `${recipe.reviews} đánh giá` : "0 đánh giá"}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -387,8 +300,24 @@ const AllRecipesPage: React.FC = () => {
             {/* Recipe Grid - 2 columns */}
             <View className="flex-row flex-wrap justify-between">
               {displayedRecipes.map((recipe) => (
-                <View key={recipe.id} className="mb-4">
-                  <RecipeCard recipe={recipe} />
+                <View 
+                  key={recipe.id} 
+                  className="mb-3"
+                  style={{ width: '48%' }}
+                >
+                  <RecipeCard
+                    id={recipe.id}
+                    title={recipe.title}
+                    description=""
+                    image={recipe.image}
+                    rating={recipe.rating || 0}
+                    difficulty={recipe.difficulty}
+                    cookTime={recipe.duration}
+                    servings={recipe.servings || 0}
+                    cuisine={recipe.cuisine || ""}
+                    ingredients={recipe.ingredients || []}
+                    reviews={recipe.reviews || 0}
+                  />
                 </View>
               ))}
             </View>

@@ -32,10 +32,9 @@ export default function RecipeDetailPage() {
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions'>('instructions');
   const screenWidth = Dimensions.get("window").width;
 
-  // Get recipe from Redux store
-  const recipes = useAppSelector((state) => state.recipes.recipes);
+  // Get currentRecipe from Redux store (recipe with full instructions)
+  const currentRecipe = useAppSelector((state) => state.recipes.currentRecipe);
   const loading = useAppSelector((state) => state.recipes.loading);
-  const recipe = recipes.find((r) => r._id === id);
   
   // Get favorite state
   const favoriteRecipeIds = useAppSelector((state) => state.favorites.favoriteRecipeIds);
@@ -100,8 +99,8 @@ export default function RecipeDetailPage() {
     );
   };
 
-  // Show loading spinner when loading and no recipe
-  if (loading && !recipe) {
+  // Show loading spinner when loading and no currentRecipe
+  if (loading && !currentRecipe) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <View className="animate-spin">
@@ -111,8 +110,8 @@ export default function RecipeDetailPage() {
     );
   }
 
-  // Show not found if not loading and no recipe
-  if (!loading && !recipe) {
+  // Show not found if not loading and no currentRecipe
+  if (!loading && !currentRecipe) {
     return (
       <View className="flex-1 items-center justify-center bg-white px-4">
         <Text className="text-2xl font-semibold text-gray-900 mb-4">
@@ -128,8 +127,8 @@ export default function RecipeDetailPage() {
     );
   }
 
-  // If still no recipe (loading first time)
-  if (!recipe) {
+  // If currentRecipe exists BUT no instructions yet (loading), show loading
+  if (!currentRecipe || !currentRecipe.instructions || currentRecipe.instructions.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <View className="animate-spin">
@@ -151,7 +150,7 @@ export default function RecipeDetailPage() {
         {/* Hero Image with Overlay */}
         <View className="relative h-80">
           <Image
-            source={{ uri: recipe.image }}
+            source={{ uri: currentRecipe.image }}
             className="w-full h-full"
             resizeMode="cover"
           />
@@ -183,41 +182,41 @@ export default function RecipeDetailPage() {
           {/* Recipe Info Overlay */}
           <View className="absolute bottom-0 left-0 right-0 p-6">
             {/* Badges */}
-            <View className="flex-row flex-wrap gap-2 mb-3">
+            <View className="flex-row flex-wrap gap-2 mb-2">
               <View
-                className="px-4 py-1 rounded-full"
+                className="px-3 py-1 rounded-full"
                 style={{
                   backgroundColor:
-                    difficultyColors[recipe.difficulty] || "#6B7280",
+                    difficultyColors[currentRecipe.difficulty] || "#6B7280",
                 }}
               >
-                <Text className="text-white text-sm font-semibold">
-                  {recipe.difficulty}
+                <Text className="text-white text-xs font-semibold">
+                  {currentRecipe.difficulty}
                 </Text>
               </View>
-              <View className="bg-orange-500/80 px-4 py-1 rounded-full">
-                <Text className="text-white text-sm font-semibold">
-                  {recipe.cuisine.name}
+              <View className="bg-orange-500/80 px-3 py-1 rounded-full">
+                <Text className="text-white text-xs font-semibold">
+                  {currentRecipe.cuisine.name}
                 </Text>
               </View>
             </View>
 
             {/* Title & Description */}
-            <Text className="text-white text-3xl font-bold mb-2">
-              {recipe.name}
+            <Text className="text-white text-2xl font-bold mb-2">
+              {currentRecipe.name}
             </Text>
-            <View className="mb-4">
-              <Text className="text-white/95 text-base">
+            <View className="mb-3">
+              <Text className="text-white/95 text-sm">
                 {showFullDescription
-                  ? recipe.short
-                  : recipe.short && recipe.short.length > 100
-                    ? recipe.short.substring(0, 100) + "..."
-                    : recipe.short
+                  ? currentRecipe.short
+                  : currentRecipe.short && currentRecipe.short.length > 80
+                    ? currentRecipe.short.substring(0, 80) + "..."
+                    : currentRecipe.short
                 }
-                {recipe.short && recipe.short.length > 100 && (
+                {currentRecipe.short && currentRecipe.short.length > 80 && (
                   <Text
                     onPress={() => setShowFullDescription(!showFullDescription)}
-                    className="text-orange-300 text-sm font-semibold"
+                    className="text-orange-300 text-xs font-semibold"
                   >
                     {showFullDescription ? " Thu gọn" : " Xem thêm"}
                   </Text>
@@ -226,22 +225,22 @@ export default function RecipeDetailPage() {
             </View>
 
             {/* Meta Info */}
-            <View className="flex-row flex-wrap gap-4">
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="time-outline" size={20} color="#FFF" />
-                <Text className="text-white text-sm">{recipe.time} phút</Text>
+            <View className="flex-row flex-wrap gap-2">
+              <View className="flex-row items-center gap-1 bg-black/30 px-2 py-1 rounded-lg">
+                <Ionicons name="time-outline" size={16} color="#FFF" />
+                <Text className="text-white text-xs font-medium">{currentRecipe.time}p</Text>
               </View>
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="people-outline" size={20} color="#FFF" />
-                <Text className="text-white text-sm">{recipe.size} người</Text>
+              <View className="flex-row items-center gap-1 bg-black/30 px-2 py-1 rounded-lg">
+                <Ionicons name="people-outline" size={16} color="#FFF" />
+                <Text className="text-white text-xs font-medium">{currentRecipe.size} người</Text>
               </View>
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="star" size={20} color="#FBBF24" />
-                <Text className="text-white text-sm font-semibold">
-                  {(recipe.rate || 0).toFixed(1)}
+              <View className="flex-row items-center gap-1 bg-black/30 px-2 py-1 rounded-lg">
+                <Ionicons name="star" size={16} color="#FBBF24" />
+                <Text className="text-white text-xs font-semibold">
+                  {(currentRecipe.rate || 0).toFixed(1)}
                 </Text>
-                <Text className="text-white/80 text-sm">
-                  ({recipe.numberOfRate || 0} đánh giá)
+                <Text className="text-white/90 text-xs">
+                  ({currentRecipe.numberOfRate || 0})
                 </Text>
               </View>
             </View>
@@ -304,7 +303,7 @@ export default function RecipeDetailPage() {
               {/* Instructions Section */}
               {activeTab === 'instructions' && (
                 <View className="p-4 pt-0">
-                  {recipe.instructions.map((instruction, index) => (
+                  {currentRecipe.instructions.map((instruction, index) => (
                     <View
                       key={index}
                       className="border border-gray-200 rounded-lg mb-3 overflow-hidden"
@@ -440,7 +439,7 @@ export default function RecipeDetailPage() {
               {/* Ingredients Section */}
               {activeTab === 'ingredients' && (
                 <View className="p-4 pt-0">
-                  {recipe.ingredients.map((ingredient, index) => (
+                  {currentRecipe.ingredients.map((ingredient, index) => (
                     <Pressable
                       key={index}
                       onPress={() => toggleIngredient(index)}
@@ -513,17 +512,17 @@ export default function RecipeDetailPage() {
           </View>
 
           {/* Video Tutorial */}
-          {recipe.video && recipe.video.trim() !== "" && (
+          {currentRecipe.video && currentRecipe.video.trim() !== "" && (
             <RecipeVideoPlayer
-              videoUrl={recipe.video}
-              recipeName={recipe.name}
-              instructions={recipe.instructions}
+              videoUrl={currentRecipe.video}
+              recipeName={currentRecipe.name}
+              instructions={currentRecipe.instructions}
               screenWidth={screenWidth}
             />
           )}
 
           {/* Comment Section */}
-          <CommentSection recipeId={recipe._id} />
+          <CommentSection recipeId={currentRecipe._id} />
         </View>
 
         {/* Bottom spacing for safe area */}

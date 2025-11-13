@@ -92,6 +92,12 @@ export default function MealPlanPage() {
     // AI-generated meal plans (temporary storage from chatbot)
     const [aiGeneratedPlans, setAiGeneratedPlans] = useState<MealPlanDay[] | null>(null);
 
+    // Tab state for switching between Planner and Shopping List
+    const [activeTab, setActiveTab] = useState<'planner' | 'shopping'>('planner');
+
+    // Checked ingredients for shopping list
+    const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
+
     // Load data - fetch recipes CHỈ KHI chưa có data
     useEffect(() => {
         if (recipes.length === 0) {
@@ -449,6 +455,9 @@ export default function MealPlanPage() {
             return;
         }
 
+        // Reset về tab Planner trước khi tạo mới
+        setActiveTab('planner');
+
         // Backup current state trước khi mở modal
         setBackupViewMode(viewMode);
         setBackupEditingPlans([...editingPlans]);
@@ -766,6 +775,44 @@ export default function MealPlanPage() {
         recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Generate shopping list from meal plan
+    const generateShoppingList = () => {
+        const ingredientMap = new Map<string, { name: string; count: number }>();
+
+        editingPlans.forEach((plan) => {
+            [plan.morning, plan.noon, plan.evening].forEach((meal) => {
+                if (meal?.recipeId) {
+                    const recipe = recipes.find((r) => r._id === meal.recipeId);
+                    if (recipe && recipe.ingredients) {
+                        recipe.ingredients.forEach((ing) => {
+                            const existing = ingredientMap.get(ing.name);
+                            if (existing) {
+                                existing.count++;
+                            } else {
+                                ingredientMap.set(ing.name, { name: ing.name, count: 1 });
+                            }
+                        });
+                    }
+                }
+            });
+        });
+
+        return Array.from(ingredientMap.values());
+    };
+
+    // Toggle ingredient check
+    const toggleIngredientCheck = (ingredientName: string) => {
+        setCheckedIngredients((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(ingredientName)) {
+                newSet.delete(ingredientName);
+            } else {
+                newSet.add(ingredientName);
+            }
+            return newSet;
+        });
+    };
+
     // Calculate stats
     const getStats = () => {
         let totalRecipes = 0;
@@ -823,10 +870,9 @@ export default function MealPlanPage() {
                         {viewMode !== "creating" && (
                             <TouchableOpacity
                                 onPress={startCreatingNewPlan}
-                                className="bg-orange-500 px-4 py-2 rounded-xl flex-row items-center"
+                                className="bg-orange-500 w-10 h-10 rounded-xl items-center justify-center"
                             >
-                                <Ionicons name="add" size={20} color="#FFF" />
-                                <Text className="text-white font-semibold ml-1">Tạo mới</Text>
+                                <Ionicons name="add" size={24} color="#FFF" />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -846,6 +892,50 @@ export default function MealPlanPage() {
                             </Text>
                         </View>
                     </View>
+
+                    {/* Tab Switcher */}
+                    {(viewMode === 'viewing' || viewMode === 'creating') && editingPlans.length > 0 && (
+                        <View className="flex-row gap-2 mt-4">
+                            <TouchableOpacity
+                                onPress={() => setActiveTab('planner')}
+                                className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${
+                                    activeTab === 'planner' 
+                                        ? 'bg-orange-500' 
+                                        : 'bg-white border border-gray-200'
+                                }`}
+                            >
+                                <Ionicons 
+                                    name="calendar" 
+                                    size={20} 
+                                    color={activeTab === 'planner' ? '#FFF' : '#9CA3AF'} 
+                                />
+                                <Text className={`ml-2 font-semibold ${
+                                    activeTab === 'planner' ? 'text-white' : 'text-gray-500'
+                                }`}>
+                                    Lập kế hoạch
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => setActiveTab('shopping')}
+                                className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${
+                                    activeTab === 'shopping' 
+                                        ? 'bg-orange-500' 
+                                        : 'bg-white border border-gray-200'
+                                }`}
+                            >
+                                <Ionicons 
+                                    name="cart" 
+                                    size={20} 
+                                    color={activeTab === 'shopping' ? '#FFF' : '#9CA3AF'} 
+                                />
+                                <Text className={`ml-2 font-semibold ${
+                                    activeTab === 'shopping' ? 'text-white' : 'text-gray-500'
+                                }`}>
+                                    Mua sắm
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
 
                 {/* Plan Navigation */}
@@ -901,6 +991,130 @@ export default function MealPlanPage() {
                     </View>
                 )}
 
+                {/* Shopping List Tab - Moved up here */}
+                {activeTab === 'shopping' && (viewMode === "viewing" || viewMode === "creating") && (
+                    <View className="px-4 mt-4">
+                        <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            {/* Header */}
+                            <View className="bg-gradient-to-r from-orange-500 to-red-500 px-4 py-4">
+                                <View className="flex-row items-center justify-between">
+                                    <View className="flex-row items-center">
+                                        <Ionicons name="cart" size={24} color="#FFF" />
+                                        <Text className="text-white text-lg font-bold ml-2">
+                                            Danh sách mua sắm
+                                        </Text>
+                                    </View>
+                                    <View className="bg-white/20 px-3 py-1 rounded-full">
+                                        <Text className="text-white text-xs font-semibold">
+                                            {generateShoppingList().length} nguyên liệu
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* Shopping List Content */}
+                            <View className="p-4">
+                                {generateShoppingList().length === 0 ? (
+                                    <View className="items-center py-12">
+                                        <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
+                                        <Text className="text-gray-500 mt-4 text-center">
+                                            Chưa có nguyên liệu nào{'\n'}Hãy thêm món ăn vào kế hoạch!
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <View>
+                                        {generateShoppingList().map((item, index) => (
+                                            <TouchableOpacity
+                                                key={item.name}
+                                                onPress={() => toggleIngredientCheck(item.name)}
+                                                className={`flex-row items-center py-3 ${
+                                                    index !== generateShoppingList().length - 1
+                                                        ? 'border-b border-gray-100'
+                                                        : ''
+                                                }`}
+                                                activeOpacity={0.7}
+                                            >
+                                                {/* Checkbox */}
+                                                <View
+                                                    className={`w-6 h-6 rounded-md border-2 mr-3 items-center justify-center ${
+                                                        checkedIngredients.has(item.name)
+                                                            ? 'bg-orange-500 border-orange-500'
+                                                            : 'border-gray-300 bg-white'
+                                                    }`}
+                                                >
+                                                    {checkedIngredients.has(item.name) && (
+                                                        <Ionicons name="checkmark" size={16} color="#FFF" />
+                                                    )}
+                                                </View>
+
+                                                {/* Ingredient Info */}
+                                                <View className="flex-1">
+                                                    <Text
+                                                        className={`text-base ${
+                                                            checkedIngredients.has(item.name)
+                                                                ? 'text-gray-400 line-through'
+                                                                : 'text-gray-900 font-medium'
+                                                        }`}
+                                                    >
+                                                        {item.name}
+                                                    </Text>
+                                                </View>
+
+                                                {/* Count Badge */}
+                                                <View className="bg-orange-100 px-2.5 py-1 rounded-full">
+                                                    <Text className="text-orange-600 text-xs font-semibold">
+                                                        {item.count}x
+                                                    </Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Action Button */}
+                            {generateShoppingList().length > 0 && (
+                                <View className="px-4 pb-4">
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            Toast.show({
+                                                type: 'info',
+                                                text1: '💡 Tính năng đang phát triển',
+                                                text2: 'Xuất danh sách mua sắm sẽ sớm có trong phiên bản tiếp theo!',
+                                                position: 'top',
+                                                visibilityTime: 3000,
+                                            });
+                                        }}
+                                        className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl py-3 flex-row items-center justify-center"
+                                    >
+                                        <Ionicons name="download-outline" size={20} color="#FFF" />
+                                        <Text className="text-white font-bold text-base ml-2">
+                                            Xuất danh sách
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Tips Section */}
+                        <View className="mt-4 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                            <View className="flex-row items-start">
+                                <Ionicons name="bulb" size={20} color="#3B82F6" />
+                                <View className="flex-1 ml-3">
+                                    <Text className="text-blue-900 font-semibold text-sm mb-1">
+                                        💡 Mẹo mua sắm
+                                    </Text>
+                                    <Text className="text-blue-700 text-xs leading-5">
+                                        • Nhấn vào nguyên liệu để đánh dấu đã mua{'\n'}
+                                        • Số lần xuất hiện cho biết cần dùng cho bao nhiêu món{'\n'}
+                                        • Nên mua đủ số lượng theo kế hoạch để tránh lãng phí
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
                 {/* Empty State */}
                 {viewMode === "browse" && sortedMealPlans.length === 0 && (
                     <View className="items-center justify-center py-20 px-6">
@@ -923,8 +1137,8 @@ export default function MealPlanPage() {
                     </View>
                 )}
 
-                {/* Meal Plan Horizontal Scroll */}
-                {(viewMode === "viewing" || viewMode === "creating") && (
+                {/* Planner Tab - Meal Plan Table */}
+                {activeTab === 'planner' && (viewMode === "viewing" || viewMode === "creating") && (
                     <View className="mt-4">
                         <ScrollView
                             horizontal
@@ -1080,7 +1294,7 @@ export default function MealPlanPage() {
                 {/* Action Buttons */}
                 {(viewMode === "viewing" || viewMode === "creating") && (
                     <View className="px-4 pb-8 mt-4">
-                        {viewMode === "viewing" && hasChanges && (
+                        {viewMode === "viewing" && hasChanges && activeTab === 'planner' && (
                             <TouchableOpacity
                                 onPress={saveMealPlan}
                                 className="bg-orange-500 rounded-xl py-4 items-center mb-3"
@@ -1091,7 +1305,7 @@ export default function MealPlanPage() {
                             </TouchableOpacity>
                         )}
 
-                        {viewMode === "creating" && (
+                        {viewMode === "creating" && activeTab === 'planner' && (
                             <TouchableOpacity
                                 onPress={saveMealPlan}
                                 className="bg-orange-500 rounded-xl py-4 items-center mb-3"
@@ -1102,7 +1316,7 @@ export default function MealPlanPage() {
                             </TouchableOpacity>
                         )}
 
-                        {viewMode === "viewing" && currentPlan?.status === "pending" && (
+                        {viewMode === "viewing" && currentPlan?.status === "pending" && activeTab === 'planner' && (
                             <TouchableOpacity
                                 onPress={deletePlan}
                                 className="bg-red-500 rounded-xl py-4 items-center mb-3"
@@ -1113,7 +1327,7 @@ export default function MealPlanPage() {
                             </TouchableOpacity>
                         )}
 
-                        {viewMode === "creating" && (
+                        {viewMode === "creating" && activeTab === 'planner' && (
                             <TouchableOpacity
                                 onPress={() => {
                                     // Restore lại state như khi chưa nhấn "Tạo mới"
