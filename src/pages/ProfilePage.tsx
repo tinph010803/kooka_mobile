@@ -34,10 +34,14 @@ const ProfilePage: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
-    if (user?._id) {
-      dispatch(fetchProfile(user._id));
-    }
-  }, [user, dispatch]);
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (user?._id) {
+        dispatch(fetchProfile(user._id));
+      }
+    });
+
+    return unsubscribe;
+  }, [user, dispatch, navigation]);
 
   const handleLogout = () => {
     setShowLogoutModal(true);

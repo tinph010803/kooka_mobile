@@ -49,8 +49,12 @@ const MyReviewsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadUserReviews();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadUserReviews();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const onRefresh = () => {
     setRefreshing(true);
