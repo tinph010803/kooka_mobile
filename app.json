@@ -9,18 +9,29 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Ứng dụng cần quyền truy cập thư viện ảnh để bạn có thể chọn ảnh đại diện.",
+        "NSCameraUsageDescription": "Ứng dụng cần quyền truy cập camera để bạn có thể chụp ảnh đại diện."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.tinph1830.kooka_mobile",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
+      "expo-image-picker",
       [
         "expo-splash-screen",
         {
@@ -34,6 +45,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8fe375bd-fbd4-4754-a5e4-29e61945e390"
+      }
     }
   }
 }

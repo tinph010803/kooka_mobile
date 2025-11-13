@@ -1,32 +1,40 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Home, Search, PlusCircle, Bell, User } from "lucide-react-native";
+import { Home, Search, Calendar, User, Bot } from "lucide-react-native";
 import HomeTabPage from "../pages/HomeTabPage";
 import SearchPage from "../pages/SearchPage";
-import AddPage from "../pages/AddPage";
-import NotificationsPage from "../pages/NotificationsPage";
+import MealPlanPage from "../pages/MealPlanPage";
 import ProfilePage from "../pages/ProfilePage";
+import AIChatBotPage from "../pages/AIChatBotPage";
+import colors from "tailwindcss/colors";
+import { Platform, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#F97316",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: colors.orange[500],
+        tabBarInactiveTintColor: colors.gray[400],
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
+          position: 'absolute',
+          backgroundColor: colors.white,
           borderTopWidth: 1,
-          borderTopColor: "#E5E7EB",
-          height: 60,
-          paddingBottom: 8,
+          borderTopColor: colors.gray[200],
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
         },
       }}
     >
@@ -34,7 +42,6 @@ const MainTabs = () => {
         name="HomeTab"
         component={HomeTabPage}
         options={{
-          tabBarLabel: "Home",
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
@@ -42,31 +49,27 @@ const MainTabs = () => {
         name="Search"
         component={SearchPage}
         options={{
-          tabBarLabel: "Search",
           tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
         }}
       />
       <Tab.Screen
-        name="Add"
-        component={AddPage}
+        name="AIChat"
+        component={AIChatBotPage}
         options={{
-          tabBarLabel: "Add",
-          tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Bot size={size} color={color} />,
         }}
       />
       <Tab.Screen
-        name="Notifications"
-        component={NotificationsPage}
+        name="MealPlan"
+        component={MealPlanPage}
         options={{
-          tabBarLabel: "Notifications",
-          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfilePage}
         options={{
-          tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
