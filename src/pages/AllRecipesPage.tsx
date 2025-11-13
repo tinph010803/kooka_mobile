@@ -80,12 +80,16 @@ const AllRecipesPage: React.FC = () => {
 
   const recipes = isAllRecipes ? allRecipes : isNewRecipes ? newestRecipes : popularRecipes;
 
-  // Fetch filter options
+  // Fetch filter options whenever page is focused
   useEffect(() => {
-    dispatch(fetchTags());
-    dispatch(fetchCuisines());
-    dispatch(fetchCategories());
-  }, [dispatch]);
+    const unsubscribe = navigation.addListener('focus', () => {
+      dispatch(fetchTags());
+      dispatch(fetchCuisines());
+      dispatch(fetchCategories());
+    });
+
+    return unsubscribe;
+  }, [dispatch, navigation]);
 
   // Auto-select category when navigating from footer
   useEffect(() => {
@@ -103,15 +107,19 @@ const AllRecipesPage: React.FC = () => {
   }, [categoryName, categories]);
 
   useEffect(() => {
-    // Fetch recipes based on type - chỉ fetch khi chưa có data
-    if (isAllRecipes && allRecipes.length === 0) {
-      dispatch(fetchRecipes());
-    } else if (isNewRecipes && newestRecipes.length === 0) {
-      dispatch(fetchNewestRecipes());
-    } else if (!isNewRecipes && !isAllRecipes && popularRecipes.length === 0) {
-      dispatch(fetchPopularRecipes());
-    }
-  }, [dispatch, isNewRecipes, isAllRecipes, allRecipes.length, newestRecipes.length, popularRecipes.length]);
+    // Fetch recipes based on type whenever page is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (isAllRecipes) {
+        dispatch(fetchRecipes());
+      } else if (isNewRecipes) {
+        dispatch(fetchNewestRecipes());
+      } else {
+        dispatch(fetchPopularRecipes());
+      }
+    });
+
+    return unsubscribe;
+  }, [dispatch, isNewRecipes, isAllRecipes, navigation]);
 
 
 
@@ -179,7 +187,6 @@ const AllRecipesPage: React.FC = () => {
         iconName: "restaurant" as const,
         iconColor: "#2563EB",
         title: "Tất Cả Món Ăn",
-        description: "Khám phá toàn bộ kho công thức nấu ăn phong phú của chúng tôi",
         gradientColors: ["#EFF6FF", "#E0E7FF", "#EFF6FF"],
         buttonColor: "#2563EB",
       }
@@ -188,7 +195,6 @@ const AllRecipesPage: React.FC = () => {
           iconName: "sparkles" as const,
           iconColor: "#F97316",
           title: "Món Ăn Mới",
-          description: "Khám phá các công thức nấu ăn mới nhất được cập nhật liên tục",
           gradientColors: ["#FFEDD5", "#FEF3C7", "#FFEDD5"],
           buttonColor: "#F97316",
         }
@@ -196,7 +202,6 @@ const AllRecipesPage: React.FC = () => {
           iconName: "trending-up" as const,
           iconColor: "#DB2777",
           title: "Món Ăn Phổ Biến",
-          description: "Khám phá các món ăn được yêu thích nhất bởi cộng đồng",
           gradientColors: ["#FCE7F3", "#F3E8FF", "#FCE7F3"],
           buttonColor: "#DB2777",
         };
@@ -213,9 +218,7 @@ const AllRecipesPage: React.FC = () => {
             <Ionicons name={config.iconName} size={24} color={config.iconColor} />
             <Text className="ml-2 text-xl font-bold text-gray-900">{config.title}</Text>
           </View>
-          <Text className="text-xs text-gray-600" numberOfLines={1}>
-            {config.description}
-          </Text>
+         
         </View>
       </View>
 

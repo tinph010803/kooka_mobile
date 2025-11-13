@@ -58,18 +58,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showCuisinePicker, setShowCuisinePicker] = useState(false);
 
-  // Fetch data when component mounts if not already loaded
+  // Fetch data when modal opens to always get fresh data
   useEffect(() => {
-    if (categories.length === 0) {
+    if (isOpen) {
       dispatch(fetchCategories());
-    }
-    if (tags.length === 0) {
       dispatch(fetchTags());
-    }
-    if (cuisines.length === 0) {
       dispatch(fetchCuisines());
     }
-  }, [dispatch, categories.length, tags.length, cuisines.length]);
+  }, [isOpen, dispatch]);
 
   // Color scheme
   const colors = {
@@ -130,9 +126,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
           className="bg-white rounded-t-3xl"
           onPress={(e) => e.stopPropagation()}
         >
-          <View className="p-6 max-h-[80vh]">
+          <View className="p-6">
             {/* Header */}
-            <View className="flex-row justify-between items-center mb-6">
+            <View className="flex-row justify-between items-center mb-5">
               <Text className="text-2xl font-bold text-gray-900">
                 Bộ lọc tìm kiếm
               </Text>
@@ -144,24 +140,29 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="mb-6" showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              className="max-h-[65vh]"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 10 }}
+            >
               {/* Tags */}
-              <View className="mb-6">
+              <View className="mb-5">
                 <Text className="text-base font-semibold text-gray-900 mb-3">
                   Tags
                 </Text>
-                <View className="max-h-[100px]">
+                <View className="min-h-[120px] max-h-[180px] rounded-xl p-3 border-gray-200">
                   <ScrollView
-                    showsVerticalScrollIndicator={false}
+                    showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}
+                    persistentScrollbar={true}
                   >
-                    <View className="flex-row flex-wrap gap-2">
+                    <View className="flex-row flex-wrap gap-2.5">
                       {tags.length > 0 ? (
                         tags.map((tag) => (
                           <TouchableOpacity
                             key={tag._id}
                             onPress={() => handleTagToggle(tag._id)}
-                            className={`px-4 py-2 rounded-full border ${
+                            className={`px-4 py-2.5 rounded-full border ${
                               selectedTags.includes(tag._id)
                                 ? "border-transparent"
                                 : "border-gray-300 bg-white"
@@ -194,15 +195,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </View>
 
               {/* Category */}
-              <View className="mb-6">
+              <View className="mb-5">
                 <Text className="text-base font-semibold text-gray-900 mb-3">
                   Danh mục
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowCategoryPicker(true)}
-                  className="border border-gray-300 rounded-xl bg-white px-4 py-3.5 flex-row items-center justify-between"
+                  className="border border-gray-300 rounded-xl bg-white px-4 py-4 flex-row items-center justify-between shadow-sm"
                 >
-                  <Text className={selectedCategory ? "text-gray-900" : "text-gray-500"}>
+                  <Text className={selectedCategory ? "text-gray-900 font-medium" : "text-gray-500"}>
                     {selectedCategory 
                       ? categories.find(c => c._id === selectedCategory)?.name || "Tất cả danh mục"
                       : "Tất cả danh mục"}
@@ -212,15 +213,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </View>
 
               {/* Cuisine */}
-              <View className="mb-4">
+              <View className="mb-2">
                 <Text className="text-base font-semibold text-gray-900 mb-3">
                   Ẩm thực
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowCuisinePicker(true)}
-                  className="border border-gray-300 rounded-xl bg-white px-4 py-3.5 flex-row items-center justify-between"
+                  className="border border-gray-300 rounded-xl bg-white px-4 py-4 flex-row items-center justify-between shadow-sm"
                 >
-                  <Text className={selectedCuisine ? "text-gray-900" : "text-gray-500"}>
+                  <Text className={selectedCuisine ? "text-gray-900 font-medium" : "text-gray-500"}>
                     {selectedCuisine 
                       ? cuisines.find(c => c._id === selectedCuisine)?.name || "Tất cả ẩm thực"
                       : "Tất cả ẩm thực"}
@@ -231,10 +232,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
             </ScrollView>
 
             {/* Button Group */}
-            <View className="flex-row gap-3">
+            <View className="flex-row gap-3 mt-5 pt-4 border-gray-200">
               <TouchableOpacity
                 onPress={handleClearFilters}
-                className="flex-1 border border-gray-300 rounded-xl py-4 items-center"
+                className="flex-1 border-2 border-gray-300 rounded-xl py-3.5 items-center"
               >
                 <Text className="text-gray-700 font-semibold text-base">
                   Xóa bộ lọc
@@ -242,7 +243,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleApply}
-                className="flex-[2] rounded-xl py-4 items-center"
+                className="flex-[2] rounded-xl py-3.5 items-center shadow-md"
                 style={{ backgroundColor: currentColors.primary }}
               >
                 <Text className="text-white font-semibold text-base">
@@ -258,7 +259,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
       <Modal
         visible={showCategoryPicker}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowCategoryPicker(false)}
       >
         <Pressable
@@ -266,11 +267,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
           onPress={() => setShowCategoryPicker(false)}
         >
           <Pressable
-            className="bg-white rounded-t-3xl max-h-[60vh]"
+            className="bg-white rounded-t-3xl"
             onPress={(e) => e.stopPropagation()}
           >
             <View className="p-6">
-              <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-row justify-between items-center mb-5">
                 <Text className="text-xl font-bold text-gray-900">
                   Chọn danh mục
                 </Text>
@@ -278,18 +279,26 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onPress={() => setShowCategoryPicker(false)}
                   className="p-2 bg-gray-100 rounded-full"
                 >
-                  <Ionicons name="close" size={20} color="#6B7280" />
+                  <Ionicons name="close" size={22} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView 
+                className="max-h-[50vh]"
+                showsVerticalScrollIndicator={true}
+              >
                 <TouchableOpacity
                   onPress={() => {
                     setSelectedCategory("");
                     setShowCategoryPicker(false);
                   }}
-                  className="py-3 border-b border-gray-200"
+                  className={`py-4 px-3 rounded-lg mb-2 ${
+                    selectedCategory === "" ? "bg-orange-50" : "bg-white"
+                  }`}
+                  style={selectedCategory === "" ? { borderWidth: 1, borderColor: currentColors.primary } : {}}
                 >
-                  <Text className="text-base text-gray-900">
+                  <Text className={`text-base ${
+                    selectedCategory === "" ? "font-semibold" : "font-normal"
+                  }`} style={selectedCategory === "" ? { color: currentColors.primary } : { color: "#111827" }}>
                     Tất cả danh mục
                   </Text>
                 </TouchableOpacity>
@@ -300,9 +309,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       setSelectedCategory(cat._id);
                       setShowCategoryPicker(false);
                     }}
-                    className="py-3 border-b border-gray-200"
+                    className={`py-4 px-3 rounded-lg mb-2 ${
+                      selectedCategory === cat._id ? "bg-orange-50" : "bg-white"
+                    }`}
+                    style={selectedCategory === cat._id ? { borderWidth: 1, borderColor: currentColors.primary } : {}}
                   >
-                    <Text className="text-base text-gray-900">{cat.name}</Text>
+                    <Text className={`text-base ${
+                      selectedCategory === cat._id ? "font-semibold" : "font-normal"
+                    }`} style={selectedCategory === cat._id ? { color: currentColors.primary } : { color: "#111827" }}>
+                      {cat.name}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -315,7 +331,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
       <Modal
         visible={showCuisinePicker}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowCuisinePicker(false)}
       >
         <Pressable
@@ -323,11 +339,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
           onPress={() => setShowCuisinePicker(false)}
         >
           <Pressable
-            className="bg-white rounded-t-3xl max-h-[60vh]"
+            className="bg-white rounded-t-3xl"
             onPress={(e) => e.stopPropagation()}
           >
             <View className="p-6">
-              <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-row justify-between items-center mb-5">
                 <Text className="text-xl font-bold text-gray-900">
                   Chọn ẩm thực
                 </Text>
@@ -335,18 +351,26 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onPress={() => setShowCuisinePicker(false)}
                   className="p-2 bg-gray-100 rounded-full"
                 >
-                  <Ionicons name="close" size={20} color="#6B7280" />
+                  <Ionicons name="close" size={22} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-              <ScrollView showsVerticalScrollIndicator={false}>
+              <ScrollView 
+                className="max-h-[50vh]"
+                showsVerticalScrollIndicator={true}
+              >
                 <TouchableOpacity
                   onPress={() => {
                     setSelectedCuisine("");
                     setShowCuisinePicker(false);
                   }}
-                  className="py-3 border-b border-gray-200"
+                  className={`py-4 px-3 rounded-lg mb-2 ${
+                    selectedCuisine === "" ? "bg-orange-50" : "bg-white"
+                  }`}
+                  style={selectedCuisine === "" ? { borderWidth: 1, borderColor: currentColors.primary } : {}}
                 >
-                  <Text className="text-base text-gray-900">
+                  <Text className={`text-base ${
+                    selectedCuisine === "" ? "font-semibold" : "font-normal"
+                  }`} style={selectedCuisine === "" ? { color: currentColors.primary } : { color: "#111827" }}>
                     Tất cả ẩm thực
                   </Text>
                 </TouchableOpacity>
@@ -357,9 +381,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       setSelectedCuisine(cuisine._id);
                       setShowCuisinePicker(false);
                     }}
-                    className="py-3 border-b border-gray-200"
+                    className={`py-4 px-3 rounded-lg mb-2 ${
+                      selectedCuisine === cuisine._id ? "bg-orange-50" : "bg-white"
+                    }`}
+                    style={selectedCuisine === cuisine._id ? { borderWidth: 1, borderColor: currentColors.primary } : {}}
                   >
-                    <Text className="text-base text-gray-900">
+                    <Text className={`text-base ${
+                      selectedCuisine === cuisine._id ? "font-semibold" : "font-normal"
+                    }`} style={selectedCuisine === cuisine._id ? { color: currentColors.primary } : { color: "#111827" }}>
                       {cuisine.name}
                     </Text>
                   </TouchableOpacity>

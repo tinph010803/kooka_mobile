@@ -98,16 +98,18 @@ export default function MealPlanPage() {
     // Checked ingredients for shopping list
     const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
 
-    // Load data - fetch recipes CHỈ KHI chưa có data
+    // Load data whenever page is focused
     useEffect(() => {
-        if (recipes.length === 0) {
+        const unsubscribe = navigation.addListener('focus', () => {
             console.log('🔄 MealPlanPage - Fetching recipes...');
             dispatch(fetchRecipes());
-        }
-        if (user?._id) {
-            dispatch(fetchMealPlansByUser(user._id));
-        }
-    }, [dispatch, user, recipes.length]);
+            if (user?._id) {
+                dispatch(fetchMealPlansByUser(user._id));
+            }
+        });
+
+        return unsubscribe;
+    }, [dispatch, user, navigation]);
 
     // Handle AI-generated meal plan from chatbot
     useEffect(() => {

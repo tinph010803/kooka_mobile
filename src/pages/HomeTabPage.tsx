@@ -2,7 +2,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { View, Text, ScrollView, Image, TouchableOpacity, Dimensions, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Bell, Settings, Play, UsersRound, MapPinned, Clock, Star } from "lucide-react-native"
+import { Settings, Play, UsersRound, Clock, Star, Bell } from "lucide-react-native"
 import { useNavigation } from "@react-navigation/native"
 import { useAppDispatch, useAppSelector } from "../redux/hooks"
 import { fetchTopRatedRecipes, fetchNewestRecipes, fetchPopularRecipes, fetchCategories, fetchTrendingRecipes } from "../redux/slices/recipeSlice"
@@ -11,6 +11,7 @@ import { fetchTopComments, fetchNewestComments } from "../redux/slices/commentSl
 import RecipeCard from "../components/RecipeCard"
 import TopCommentsSection from "../components/TopCommentsSection"
 import ThreeColumnSection from "../components/ThreeColumnSection"
+
 
 const { width } = Dimensions.get("window")
 
@@ -25,17 +26,21 @@ const HomeTabPage: React.FC = () => {
   const { mostFavorited } = useAppSelector((state) => state.favorites)
   const { topComments, newestComments } = useAppSelector((state) => state.comments)
 
-  // Fetch data khi component mount
+  // Fetch data whenever page is focused
   useEffect(() => {
-    dispatch(fetchTopRatedRecipes(6)) // Lấy 6 món top rated cho banner
-    dispatch(fetchNewestRecipes(6))
-    dispatch(fetchPopularRecipes(6))
-    dispatch(fetchCategories())
-    dispatch(fetchTrendingRecipes())
-    dispatch(fetchMostFavorited())
-    dispatch(fetchTopComments())
-    dispatch(fetchNewestComments())
-  }, [dispatch])
+    const unsubscribe = navigation.addListener('focus', () => {
+      dispatch(fetchTopRatedRecipes(6)) // Lấy 6 món top rated cho banner
+      dispatch(fetchNewestRecipes(6))
+      dispatch(fetchPopularRecipes(6))
+      dispatch(fetchCategories())
+      dispatch(fetchTrendingRecipes())
+      dispatch(fetchMostFavorited())
+      dispatch(fetchTopComments())
+      dispatch(fetchNewestComments())
+    });
+
+    return unsubscribe;
+  }, [dispatch, navigation])
 
   // Scroll đến vị trí giữa khi có data
   useEffect(() => {
