@@ -32,9 +32,14 @@ axiosInstance.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response?.status === 401) {
-            // Token hết hạn hoặc không hợp lệ
+            // Token hết hạn hoặc không hợp lệ - tự động logout
             await AsyncStorage.removeItem("token");
-            // Có thể dispatch logout action ở đây nếu cần
+            await AsyncStorage.removeItem("persist:root");
+            
+            // Lazy import để tránh circular dependency
+            const { store } = await import("../redux/store");
+            const { logout } = await import("../redux/slices/authSlice");
+            store.dispatch(logout());
         }
         return Promise.reject(error);
     }
