@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { Trash2 } from 'lucide-react-native';
 import { useNotifications } from '../hooks/useNotifications';
@@ -65,14 +65,20 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   };
 
   const handleDelete = (notificationId: string) => {
-    Alert.alert('Xóa thông báo', 'Bạn có chắc muốn xóa thông báo này?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        onPress: () => deleteNotification(notificationId),
-        style: 'destructive',
+    Toast.show({
+      type: "info",
+      text1: "⚠️ Xác nhận xóa",
+      text2: "Nhấn và giữ để xác nhận xóa thông báo",
+      visibilityTime: 3000,
+      onPress: () => {
+        deleteNotification(notificationId);
+        Toast.show({
+          type: "success",
+          text1: "✅ Đã xóa",
+          text2: "Thông báo đã được xóa",
+        });
       },
-    ]);
+    });
   };
 
   const renderNotificationItem = ({ item }: { item: Notification }) => (

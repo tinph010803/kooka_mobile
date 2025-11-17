@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -65,7 +66,11 @@ const AccountManagementPage: React.FC = () => {
   const handleChangeAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Lỗi", "Cần quyền truy cập thư viện ảnh");
+      Toast.show({
+        type: "error",
+        text1: "❌ Lỗi quyền truy cập",
+        text2: "Cần quyền truy cập thư viện ảnh",
+      });
       return;
     }
 
@@ -83,9 +88,17 @@ const AccountManagementPage: React.FC = () => {
       if (user?._id) {
         try {
           await dispatch(updateProfile({ userId: user._id, data: { avatar: base64 } })).unwrap();
-          Alert.alert("Thành công", "Đã cập nhật ảnh đại diện");
+          Toast.show({
+            type: "success",
+            text1: "✅ Thành công",
+            text2: "Đã cập nhật ảnh đại diện",
+          });
         } catch (error: any) {
-          Alert.alert("Lỗi", error || "Không thể cập nhật ảnh đại diện");
+          Toast.show({
+            type: "error",
+            text1: "❌ Lỗi",
+            text2: error || "Không thể cập nhật ảnh đại diện",
+          });
         }
       }
     }
@@ -93,12 +106,20 @@ const AccountManagementPage: React.FC = () => {
 
   const handleUpdateInfo = async () => {
     if (!user?._id) {
-      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
+      Toast.show({
+        type: "error",
+        text1: "❌ Lỗi",
+        text2: "Không tìm thấy thông tin người dùng",
+      });
       return;
     }
 
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ họ và tên");
+      Toast.show({
+        type: "warning",
+        text1: "⚠️ Thiếu thông tin",
+        text2: "Vui lòng nhập đầy đủ họ và tên",
+      });
       return;
     }
 
@@ -112,7 +133,11 @@ const AccountManagementPage: React.FC = () => {
       })).unwrap();
       
       setShowEditModal(false);
-      Alert.alert("Thành công", "Đã cập nhật thông tin tài khoản");
+      Toast.show({
+        type: "success",
+        text1: "✅ Thành công",
+        text2: "Đã cập nhật thông tin tài khoản",
+      });
       
       // Reset form after successful update
       setFormData({
@@ -121,7 +146,11 @@ const AccountManagementPage: React.FC = () => {
         email: "",
       });
     } catch (error: any) {
-      Alert.alert("Lỗi", error || "Không thể cập nhật thông tin");
+      Toast.show({
+        type: "error",
+        text1: "❌ Lỗi cập nhật",
+        text2: error || "Không thể cập nhật thông tin",
+      });
     }
   };
 
@@ -137,22 +166,38 @@ const AccountManagementPage: React.FC = () => {
 
   const handleChangePassword = async () => {
     if (!passwordData.currentPassword.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu hiện tại");
+      Toast.show({
+        type: "warning",
+        text1: "⚠️ Thiếu thông tin",
+        text2: "Vui lòng nhập mật khẩu hiện tại",
+      });
       return;
     }
 
     if (!passwordData.newPassword.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu mới");
+      Toast.show({
+        type: "warning",
+        text1: "⚠️ Thiếu thông tin",
+        text2: "Vui lòng nhập mật khẩu mới",
+      });
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      Alert.alert("Lỗi", "Mật khẩu mới phải có ít nhất 6 ký tự");
+      Toast.show({
+        type: "error",
+        text1: "❌ Mật khẩu không hợp lệ",
+        text2: "Mật khẩu mới phải có ít nhất 6 ký tự",
+      });
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      Alert.alert("Lỗi", "Mật khẩu mới và xác nhận mật khẩu không khớp");
+      Toast.show({
+        type: "error",
+        text1: "❌ Mật khẩu không khớp",
+        text2: "Mật khẩu mới và xác nhận mật khẩu không khớp",
+      });
       return;
     }
 
@@ -162,7 +207,11 @@ const AccountManagementPage: React.FC = () => {
         newPassword: passwordData.newPassword,
       })).unwrap();
 
-      Alert.alert("Thành công", "Đã đổi mật khẩu thành công");
+      Toast.show({
+        type: "success",
+        text1: "✅ Thành công",
+        text2: "Đã đổi mật khẩu thành công",
+      });
       setShowPasswordModal(false);
       setPasswordData({
         currentPassword: "",
@@ -170,7 +219,11 @@ const AccountManagementPage: React.FC = () => {
         confirmPassword: "",
       });
     } catch (error: any) {
-      Alert.alert("Lỗi", error || "Không thể đổi mật khẩu");
+      Toast.show({
+        type: "error",
+        text1: "❌ Lỗi đổi mật khẩu",
+        text2: error || "Không thể đổi mật khẩu",
+      });
     }
   };
 

@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { ThumbsUp, ThumbsUpIcon } from "lucide-react-native";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
@@ -26,7 +26,6 @@ import {
 import { toggleLike, getUserLikes } from "../redux/slices/likeSlice";
 import { getRecipeById } from "../redux/slices/recipeSlice";
 import { useNavigation } from "@react-navigation/native";
-import Toast from "react-native-toast-message";
 
 interface CommentSectionProps {
   recipeId: string;
@@ -150,33 +149,29 @@ export default function CommentSection({ recipeId }: CommentSectionProps) {
   };
 
   // Handle delete comment
-  const handleDeleteComment = (commentId: string) => {
-    Alert.alert(
-      "Xóa bình luận",
-      "Bạn có chắc muốn xóa bình luận này?",
-      [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xóa",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await dispatch(deleteComment(commentId)).unwrap();
-              Toast.show({
-                type: "success",
-                text1: "Đã xóa bình luận",
-              });
-            } catch (error) {
-              Toast.show({
-                type: "error",
-                text1: "Lỗi",
-                text2: "Không thể xóa bình luận",
-              });
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteComment = async (commentId: string) => {
+    Toast.show({
+      type: "info",
+      text1: "⚠️ Xác nhận xóa",
+      text2: "Nhấn và giữ để xác nhận xóa bình luận",
+      visibilityTime: 3000,
+      onPress: async () => {
+        try {
+          await dispatch(deleteComment(commentId)).unwrap();
+          Toast.show({
+            type: "success",
+            text1: "✅ Đã xóa bình luận",
+            text2: "Bình luận đã được xóa thành công",
+          });
+        } catch (error) {
+          Toast.show({
+            type: "error",
+            text1: "❌ Lỗi",
+            text2: "Không thể xóa bình luận",
+          });
+        }
+      },
+    });
   };
 
   // Handle like/unlike comment

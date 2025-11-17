@@ -8,12 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Alert,
   Modal,
   Pressable,
   Keyboard,
   Animated,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -285,7 +285,11 @@ const AIChatBotPage = () => {
 
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Lỗi', 'Cần quyền truy cập camera');
+      Toast.show({
+        type: "error",
+        text1: "❌ Lỗi quyền truy cập",
+        text2: "Cần quyền truy cập camera",
+      });
       return;
     }
 
@@ -307,7 +311,11 @@ const AIChatBotPage = () => {
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh');
+      Toast.show({
+        type: "error",
+        text1: "❌ Lỗi quyền truy cập",
+        text2: "Cần quyền truy cập thư viện ảnh",
+      });
       return;
     }
 
@@ -534,7 +542,11 @@ const AIChatBotPage = () => {
                         <TouchableOpacity
                           onPress={() => {
                             if (!user) {
-                              Alert.alert('Thông báo', 'Vui lòng đăng nhập để sử dụng tính năng này!');
+                              Toast.show({
+                                type: 'info',
+                                text1: 'Thông báo',
+                                text2: 'Vui lòng đăng nhập để sử dụng tính năng này!'
+                              });
                               return;
                             }
                             // @ts-ignore
