@@ -224,6 +224,53 @@ const AllRecipesPage: React.FC = () => {
 
       {/* Content */}
       <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
+        {/* Filter Bar - Always visible */}
+        {!loading && (
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-xs text-gray-600">
+              {filteredRecipes.length > 0 ? (
+                <>
+                  Hiển thị{" "}
+                  <Text className="font-semibold">
+                    {startIndex + 1}-{Math.min(endIndex, filteredRecipes.length)}
+                  </Text>{" "}
+                  trong tổng số <Text className="font-semibold">{filteredRecipes.length}</Text> món ăn
+                </>
+              ) : (
+                <Text className="font-semibold">Không tìm thấy món ăn</Text>
+              )}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setIsFilterOpen(true)}
+              className={`px-4 py-2 border rounded-lg flex-row items-center relative ${
+                getFilterCount() > 0
+                  ? "bg-orange-500 border-orange-500"
+                  : "bg-white border-gray-300"
+              }`}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="filter"
+                size={16}
+                color={getFilterCount() > 0 ? "#FFFFFF" : "#374151"}
+              />
+              <Text
+                className={`ml-2 font-semibold text-sm ${
+                  getFilterCount() > 0 ? "text-white" : "text-gray-700"
+                }`}
+              >
+                Bộ lọc
+              </Text>
+              {getFilterCount() > 0 && (
+                <View className="absolute -top-2 -right-2 bg-red-500 w-5 h-5 rounded-full items-center justify-center">
+                  <Text className="text-white text-xs font-bold">{getFilterCount()}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
         {loading && recipes.length === 0 ? (
           // Loading skeleton - 2 columns
           <View className="flex-row flex-wrap justify-between">
@@ -261,47 +308,9 @@ const AllRecipesPage: React.FC = () => {
           </View>
         ) : (
           <>
-            {/* Filter Bar */}
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-xs text-gray-600">
-                Hiển thị{" "}
-                <Text className="font-semibold">
-                  {startIndex + 1}-{Math.min(endIndex, filteredRecipes.length)}
-                </Text>{" "}
-                trong tổng số <Text className="font-semibold">{filteredRecipes.length}</Text> món ăn
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => setIsFilterOpen(true)}
-                className={`px-4 py-2 border rounded-lg flex-row items-center relative ${
-                  getFilterCount() > 0
-                    ? "bg-orange-500 border-orange-500"
-                    : "bg-white border-gray-300"
-                }`}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="filter"
-                  size={16}
-                  color={getFilterCount() > 0 ? "#FFFFFF" : "#374151"}
-                />
-                <Text
-                  className={`ml-2 font-semibold text-sm ${
-                    getFilterCount() > 0 ? "text-white" : "text-gray-700"
-                  }`}
-                >
-                  Bộ lọc
-                </Text>
-                {getFilterCount() > 0 && (
-                  <View className="absolute -top-2 -right-2 bg-red-500 w-5 h-5 rounded-full items-center justify-center">
-                    <Text className="text-white text-xs font-bold">{getFilterCount()}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
 
             {/* Recipe Grid - 2 columns */}
-            <View className="flex-row flex-wrap justify-between">
+            <View className="flex-row flex-wrap justify-between mb-4">
               {displayedRecipes.map((recipe) => (
                 <View 
                   key={recipe.id} 
