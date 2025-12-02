@@ -16,6 +16,7 @@ import { toggleFavorite, checkUserFavorited } from "../redux/slices/favoriteSlic
 import RecipeVideoPlayer from "../components/RecipeVideoPlayer";
 import CommentSection from "../components/CommentSection";
 import Toast from "react-native-toast-message";
+import { Flame } from "lucide-react-native";
 
 interface RouteParams {
   id: string;
@@ -234,6 +235,12 @@ export default function RecipeDetailPage() {
                 <Ionicons name="people-outline" size={16} color="#FFF" />
                 <Text className="text-white text-xs font-medium">{currentRecipe.size} người</Text>
               </View>
+              {currentRecipe.calories && (
+                <View className="flex-row items-center gap-1 bg-black/30 px-2 py-1 rounded-lg">
+                  <Flame size={16} color="#FF6B35" />
+                  <Text className="text-white text-xs font-medium">{currentRecipe.calories} kcal</Text>
+                </View>
+              )}
               <View className="flex-row items-center gap-1 bg-black/30 px-2 py-1 rounded-lg">
                 <Ionicons name="star" size={16} color="#FBBF24" />
                 <Text className="text-white text-xs font-semibold">
