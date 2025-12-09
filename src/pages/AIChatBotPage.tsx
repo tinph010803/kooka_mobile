@@ -19,6 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../redux/store';
+import { useAppDispatch } from '../redux/hooks';
+import { fetchConversations, deleteConversation } from '../redux/slices/chatSlice';
 import axiosInstance from '../utils/axiosInstance';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -145,7 +147,9 @@ const TypingIndicator = () => {
 
 const AIChatBotPage = () => {
   const navigation = useNavigation();
+  const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { conversations, loading: chatLoading } = useSelector((state: RootState) => state.chat);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -154,6 +158,10 @@ const AIChatBotPage = () => {
   const [error, setError] = useState<string>('');
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [showImageOptions, setShowImageOptions] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -169,6 +177,13 @@ const AIChatBotPage = () => {
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setSessionId(newSessionId);
   }, []);
+
+  // Fetch conversations when component mounts (only for logged-in users)
+  useEffect(() => {
+    if (user && user._id) {
+      dispatch(fetchConversations(user._id));
+    }
+  }, [user, dispatch]);
 
   // Initial welcome message
   useEffect(() => {
@@ -371,6 +386,13 @@ const AIChatBotPage = () => {
         mealPlan: mealPlan,
       };
       setMessages(prev => [...prev, botResponse]);
+
+      // Refresh conversations list to show the new/updated conversation
+      if (user && user._id) {
+        setTimeout(() => {
+          dispatch(fetchConversations(user._id));
+        }, 1500);
+      }
     } catch (err) {
       console.error('Error getting bot response:', err);
       const errorMessage: Message = {
@@ -415,6 +437,76 @@ const AIChatBotPage = () => {
     }
   };
 
+  // Start a new chat
+  const handleNewChat = () => {
+    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setSessionId(newSessionId);
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      text: 'Xin chào! Tôi là Kooka AI Assistant. Tôi có thể giúp bạn tìm công thức, gợi ý món ăn, hoặc trả lời câu hỏi về nấu ăn. Bạn cần hỗ trợ gì?',
+      sender: 'bot',
+      timestamp: new Date(),
+    };
+    setMessages([welcomeMessage]);
+    setShowHistoryModal(false);
+  };
+
+  // Load an existing conversation
+  const handleLoadConversation = (conv: any) => {
+    setSessionId(conv.sessionId);
+    
+    // Transform backend messages to frontend format
+    const transformedMessages: Message[] = conv.messages.map((msg: any, index: number) => ({
+      id: `${conv.sessionId}_${index}`,
+      text: msg.content,
+      sender: msg.role === 'assistant' ? 'bot' : 'user',
+      timestamp: new Date(msg.timestamp),
+      recipes: msg.metadata?.recipes,
+      images: msg.metadata?.images,
+      mealPlan: msg.metadata?.mealPlan
+    }));
+    
+    setMessages(transformedMessages);
+    setShowHistoryModal(false);
+  };
+
+  // Open delete confirmation modal
+  const handleDeleteConversation = (sessionId: string) => {
+    setDeleteSessionId(sessionId);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm delete conversation
+  const confirmDeleteConversation = async () => {
+    if (!deleteSessionId || !user || !user._id) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      await dispatch(deleteConversation({ sessionId: deleteSessionId, userId: user._id })).unwrap();
+      
+      // If deleted conversation is current, start new chat
+      if (deleteSessionId === sessionId) {
+        handleNewChat();
+      }
+      
+      Toast.show({
+        type: 'success',
+        text1: '✅ Đã xóa đoạn chat thành công!'
+      });
+      
+      setShowDeleteModal(false);
+      setDeleteSessionId(null);
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: '❌ Lỗi khi xóa đoạn chat!'
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formatTime = (date: Date) => {
     return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
@@ -427,7 +519,7 @@ const AIChatBotPage = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
-        <View className="flex-row justify-between items-center px-4 py-3 border-gray-200">
+        <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
           <View className="flex-row items-center gap-3">
             <Image
               source={{
@@ -448,9 +540,23 @@ const AIChatBotPage = () => {
           </View>
 
           <View className="flex-row gap-2">
-            <TouchableOpacity className="w-9 h-9 items-center justify-center">
-              <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+            {/* New Chat Button */}
+            <TouchableOpacity 
+              className="w-9 h-9 items-center justify-center"
+              onPress={handleNewChat}
+            >
+              <Ionicons name="add-circle-outline" size={24} color="#666" />
             </TouchableOpacity>
+            
+            {/* History Button - Only for logged-in users */}
+            {user && (
+              <TouchableOpacity 
+                className="w-9 h-9 items-center justify-center"
+                onPress={() => setShowHistoryModal(true)}
+              >
+                <Ionicons name="time-outline" size={24} color="#666" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -743,6 +849,161 @@ const AIChatBotPage = () => {
                 activeOpacity={0.7}
               >
                 <Text className="text-base font-semibold text-gray-700">Hủy</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Chat History Modal */}
+      <Modal
+        visible={showHistoryModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowHistoryModal(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 justify-end"
+          onPress={() => setShowHistoryModal(false)}
+        >
+          <Pressable 
+            className="bg-white rounded-t-3xl pb-8"
+            style={{ maxHeight: '80%' }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="items-center py-3 border-b border-gray-200">
+              <View className="w-12 h-1 bg-gray-300 rounded-full" />
+            </View>
+
+            <View className="px-4 pt-4">
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-lg font-semibold text-gray-900">Lịch sử chat</Text>
+                <TouchableOpacity onPress={() => setShowHistoryModal(false)}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              {/* New Chat Button */}
+              <TouchableOpacity
+                onPress={handleNewChat}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-4 mb-4 flex-row items-center justify-center gap-2"
+                style={{ backgroundColor: '#3b82f6' }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                <Text className="text-white font-semibold text-base">Chat mới</Text>
+              </TouchableOpacity>
+
+              {/* Conversations List */}
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 16 }}
+              >
+                {chatLoading ? (
+                  <View className="py-8">
+                    <Text className="text-center text-gray-500">Đang tải...</Text>
+                  </View>
+                ) : conversations.length === 0 ? (
+                  <View className="py-8">
+                    <Text className="text-center text-gray-500">Chưa có đoạn chat nào</Text>
+                  </View>
+                ) : (
+                  <View className="space-y-2">
+                    {conversations.map((conv) => {
+                      const isActive = conv.sessionId === sessionId;
+                      const lastMessage = conv.messages && conv.messages.length > 1 ? conv.messages[1] : null;
+                      const preview = lastMessage && lastMessage.content
+                        ? lastMessage.content.substring(0, 60) + (lastMessage.content.length > 60 ? '...' : '')
+                        : 'Đoạn chat mới';
+
+                      return (
+                        <TouchableOpacity
+                          key={conv._id}
+                          onPress={() => handleLoadConversation(conv)}
+                          className={`p-3 rounded-xl ${
+                            isActive ? 'bg-blue-50 border-2 border-blue-300' : 'bg-gray-50 border border-gray-200'
+                          }`}
+                        >
+                          <View className="flex-row justify-between items-start">
+                            <View className="flex-1 mr-2">
+                              <Text className="text-sm font-medium text-gray-700 mb-1" numberOfLines={2}>
+                                {preview}
+                              </Text>
+                              <Text className="text-xs text-gray-500">
+                                {new Date(conv.updatedAt).toLocaleDateString('vi-VN', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => handleDeleteConversation(conv.sessionId)}
+                              className="p-2"
+                            >
+                              <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                            </TouchableOpacity>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isDeleting && setShowDeleteModal(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 justify-center items-center px-6"
+          onPress={() => !isDeleting && setShowDeleteModal(false)}
+        >
+          <Pressable 
+            className="bg-white rounded-2xl p-6 w-full max-w-sm"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="items-center mb-4">
+              <View className="w-16 h-16 bg-red-100 rounded-full items-center justify-center mb-3">
+                <Ionicons name="trash" size={32} color="#ef4444" />
+              </View>
+              <Text className="text-lg font-semibold text-gray-900 mb-2">Xác nhận xóa</Text>
+              <Text className="text-gray-600 text-center">
+                Bạn có chắc chắn muốn xóa đoạn chat này? Hành động này không thể hoàn tác.
+              </Text>
+            </View>
+
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="flex-1 bg-gray-100 rounded-xl py-3 items-center"
+              >
+                <Text className="text-gray-700 font-semibold">Hủy</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={confirmDeleteConversation}
+                disabled={isDeleting}
+                className="flex-1 bg-red-600 rounded-xl py-3 items-center flex-row justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <Text className="text-white font-semibold">Đang xóa...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="trash" size={16} color="#fff" />
+                    <Text className="text-white font-semibold">Xóa</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </Pressable>
