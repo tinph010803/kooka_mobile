@@ -71,8 +71,11 @@ const AllRecipesPage: React.FC = () => {
   // Initialize filters with category from navigation params if available
   const [filters, setFilters] = useState<FilterData>({
     selectedCategory: categoryId || "",
+    selectedCategoryName: "",
     selectedTags: [],
+    selectedTagNames: [],
     selectedCuisine: "",
+    selectedCuisineName: "",
   });
 
   const isNewRecipes = type === "new";
