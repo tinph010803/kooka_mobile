@@ -50,8 +50,11 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
 
   const [filters, setFilters] = useState<FilterData>({
     selectedCategory: "",
+    selectedCategoryName: "",
     selectedTags: [],
+    selectedTagNames: [],
     selectedCuisine: "",
+    selectedCuisineName: "",
   });
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -129,9 +132,9 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
     if (keyword.trim()) {
       onSearch({
         keyword,
-        cuisine: filters.selectedCuisine,
-        category: filters.selectedCategory,
-        tags: filters.selectedTags,
+        cuisine: filters.selectedCuisineName,
+        category: filters.selectedCategoryName,
+        tags: filters.selectedTagNames,
       });
     }
   };
@@ -140,9 +143,9 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
     if (selectedIngredients.length > 0) {
       onSearch({
         ingredients: selectedIngredients,
-        cuisine: filters.selectedCuisine,
-        category: filters.selectedCategory,
-        tags: filters.selectedTags,
+        cuisine: filters.selectedCuisineName,
+        category: filters.selectedCategoryName,
+        tags: filters.selectedTagNames,
       });
     }
   };
@@ -154,9 +157,9 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
 
   const getFilterCount = () => {
     return (
-      (filters.selectedCategory ? 1 : 0) +
-      filters.selectedTags.length +
-      (filters.selectedCuisine ? 1 : 0)
+      (filters.selectedCategoryName ? 1 : 0) +
+      filters.selectedTagNames.length +
+      (filters.selectedCuisineName ? 1 : 0)
     );
   };
 
