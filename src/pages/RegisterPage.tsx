@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,13 @@ import { ArrowLeft, Mail, Lock, User, CheckCircle, AlertCircle } from "lucide-re
 import { useNavigation } from "@react-navigation/native";
 import FormInput from "../components/FormInput";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import VerifyEmailModal from "../components/VerifyEmailModal";
 import { LinearGradient } from "expo-linear-gradient";
+
+// Redux
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { registerUser, clearError } from "../redux/slices/authSlice";
+import type { RootState } from "../redux/store";
 
 interface RegisterPageProps {
   onBack?: () => void;
@@ -20,6 +26,9 @@ interface RegisterPageProps {
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onBack }) => {
   const navigation = useNavigation();
+  const dispatch = useAppDispatch();
+  const { loading, error: authError } = useAppSelector((state) => state.auth);
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -29,15 +38,44 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBack }) => {
     agreeToTerms: false,
   });
 
-  const [buttonLoading, setButtonLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [validationErrors, setValidationErrors] = useState({
+    password: "",
+    confirmPassword: "",
+  });
+
+  // Auto-hide error after 3 seconds
+  useEffect(() => {
+    if (authError) {
+      const timer = setTimeout(() => {
+        dispatch(clearError());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [authError, dispatch]);
+
+  // Clear error when unmount (navigate away)
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
 
   const handleInputChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+
+    // Clear validation errors when user types
+    if (name === "password" || name === "confirmPassword") {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleCheckboxChange = () => {
@@ -47,28 +85,64 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBack }) => {
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!formData.agreeToTerms) {
-      setError("Vui lòng đồng ý với điều khoản và chính sách");
-      return;
+  const validateForm = (): boolean => {
+    const errors = {
+      password: "",
+      confirmPassword: "",
+    };
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      errors.password = "Mật khẩu phải có ít nhất 6 ký tự";
     }
 
+    // Validate password match
     if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
+      errors.confirmPassword = "Mật khẩu xác nhận không khớp";
+    }
+
+    setValidationErrors(errors);
+    return !errors.password && !errors.confirmPassword;
+  };
+
+  const handleSubmit = async () => {
+    setShowSuccess(false);
+
+    // Validate form
+    if (!validateForm()) {
       return;
     }
 
-    setButtonLoading(true);
-    setShowSuccess(false);
-    setError(null);
+    if (!formData.agreeToTerms) {
+      return;
+    }
 
-    setTimeout(() => {
-      setShowSuccess(true);
-      setTimeout(() => {
-        navigation.navigate("Home" as never);
-        setButtonLoading(false);
-      }, 1000);
-    }, 2000);
+    // Dispatch register action
+    const result = await dispatch(
+      registerUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      })
+    );
+
+    // Handle registration result
+    if (registerUser.fulfilled.match(result)) {
+      // Check if email verification is needed
+      if (result.payload.needVerification) {
+        // Show verify email modal
+        setVerifyEmail(result.payload.user.email || formData.email);
+        setShowVerifyModal(true);
+      } else if (result.payload.token) {
+        // Registration successful with token (Google OAuth)
+        setShowSuccess(true);
+        setTimeout(() => {
+          navigation.navigate("Home" as never);
+        }, 1500);
+      }
+    }
   };
 
   return (
@@ -105,10 +179,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBack }) => {
               <Text className="text-sm text-gray-600">Tham gia cộng đồng của chúng tôi</Text>
             </View>
 
-            {error && (
+            {authError && (
               <View className="flex-row items-center bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <AlertCircle size={16} color="#991B1B" />
-                <Text className="ml-2 text-sm text-red-800 flex-1">{error}</Text>
+                <Text className="ml-2 text-sm text-red-800 flex-1">{authError}</Text>
               </View>
             )}
 
@@ -158,27 +232,37 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBack }) => {
                 required
               />
 
-              <FormInput
-                label="Mật khẩu"
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                placeholder="••••••••"
-                icon={Lock}
-                required
-              />
+              <View>
+                <FormInput
+                  label="Mật khẩu"
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="••••••••"
+                  icon={Lock}
+                  required
+                />
+                {validationErrors.password && (
+                  <Text className="mt-1 text-xs text-red-600">{validationErrors.password}</Text>
+                )}
+              </View>
 
-              <FormInput
-                label="Xác nhận mật khẩu"
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                placeholder="••••••••"
-                icon={Lock}
-                required
-              />
+              <View>
+                <FormInput
+                  label="Xác nhận mật khẩu"
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  placeholder="••••••••"
+                  icon={Lock}
+                  required
+                />
+                {validationErrors.confirmPassword && (
+                  <Text className="mt-1 text-xs text-red-600">{validationErrors.confirmPassword}</Text>
+                )}
+              </View>
 
               <TouchableOpacity
                 onPress={handleCheckboxChange}
@@ -210,15 +294,15 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBack }) => {
 
               <TouchableOpacity
                 onPress={handleSubmit}
-                disabled={buttonLoading}
+                disabled={loading || !formData.agreeToTerms}
                 activeOpacity={0.7}
                 className="rounded-lg overflow-hidden"
               >
                 <LinearGradient
-                  colors={buttonLoading ? ["#9CA3AF", "#9CA3AF"] : ["#F97316", "#DC2626"]}
+                  colors={loading || !formData.agreeToTerms ? ["#9CA3AF", "#9CA3AF"] : ["#F97316", "#DC2626"]}
                   className="py-3 px-4 items-center justify-center"
                 >
-                  {buttonLoading ? (
+                  {loading ? (
                     <View className="flex-row items-center">
                       <ActivityIndicator size="small" color="#FFFFFF" />
                       <Text className="text-sm font-semibold text-white ml-2">
@@ -259,6 +343,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBack }) => {
           </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* Verify Email Modal */}
+      <VerifyEmailModal 
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        email={verifyEmail}
+      />
     </KeyboardAvoidingView>
   );
 };
