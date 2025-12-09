@@ -26,8 +26,11 @@ interface FilterModalProps {
 
 export interface FilterData {
   selectedCategory: string;
+  selectedCategoryName: string;
   selectedTags: string[];
+  selectedTagNames: string[];
   selectedCuisine: string;
+  selectedCuisineName: string;
 }
 
 const FilterModal: React.FC<FilterModalProps> = ({
@@ -48,11 +51,20 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState(
     initialFilters?.selectedCategory || ""
   );
+  const [selectedCategoryName, setSelectedCategoryName] = useState(
+    initialFilters?.selectedCategoryName || ""
+  );
   const [selectedTags, setSelectedTags] = useState<string[]>(
     initialFilters?.selectedTags || []
   );
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>(
+    initialFilters?.selectedTagNames || []
+  );
   const [selectedCuisine, setSelectedCuisine] = useState(
     initialFilters?.selectedCuisine || ""
+  );
+  const [selectedCuisineName, setSelectedCuisineName] = useState(
+    initialFilters?.selectedCuisineName || ""
   );
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -84,29 +96,41 @@ const FilterModal: React.FC<FilterModalProps> = ({
   // Function to clear all filters
   const handleClearFilters = () => {
     setSelectedCategory("");
+    setSelectedCategoryName("");
     setSelectedTags([]);
+    setSelectedTagNames([]);
     setSelectedCuisine("");
+    setSelectedCuisineName("");
 
     // Notify parent component about cleared filters
     onApply({
       selectedCategory: "",
+      selectedCategoryName: "",
       selectedTags: [],
+      selectedTagNames: [],
       selectedCuisine: "",
+      selectedCuisineName: "",
     });
     onClose();
   };
 
-  const handleTagToggle = (tag: string) => {
+  const handleTagToggle = (tagId: string, tagName: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
+    );
+    setSelectedTagNames((prev) =>
+      prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]
     );
   };
 
   const handleApply = () => {
     onApply({
       selectedCategory,
+      selectedCategoryName,
       selectedTags,
+      selectedTagNames,
       selectedCuisine,
+      selectedCuisineName,
     });
     onClose();
   };
@@ -161,7 +185,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                         tags.map((tag) => (
                           <TouchableOpacity
                             key={tag._id}
-                            onPress={() => handleTagToggle(tag._id)}
+                            onPress={() => handleTagToggle(tag._id, tag.name)}
                             className={`px-4 py-2.5 rounded-full border ${
                               selectedTags.includes(tag._id)
                                 ? "border-transparent"
@@ -289,6 +313,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <TouchableOpacity
                   onPress={() => {
                     setSelectedCategory("");
+                    setSelectedCategoryName("");
                     setShowCategoryPicker(false);
                   }}
                   className={`py-4 px-3 rounded-lg mb-2 ${
@@ -307,6 +332,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     key={cat._id}
                     onPress={() => {
                       setSelectedCategory(cat._id);
+                      setSelectedCategoryName(cat.name);
                       setShowCategoryPicker(false);
                     }}
                     className={`py-4 px-3 rounded-lg mb-2 ${
@@ -361,6 +387,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 <TouchableOpacity
                   onPress={() => {
                     setSelectedCuisine("");
+                    setSelectedCuisineName("");
                     setShowCuisinePicker(false);
                   }}
                   className={`py-4 px-3 rounded-lg mb-2 ${
@@ -379,6 +406,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     key={cuisine._id}
                     onPress={() => {
                       setSelectedCuisine(cuisine._id);
+                      setSelectedCuisineName(cuisine.name);
                       setShowCuisinePicker(false);
                     }}
                     className={`py-4 px-3 rounded-lg mb-2 ${

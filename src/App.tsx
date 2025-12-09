@@ -51,24 +51,39 @@ const toastConfig = {
 function AppNavigation() {
   const { user, token } = useSelector((state: RootState) => state.auth);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    // Kiểm tra xem user đã đăng nhập chưa
-    if (user && token) {
-      setInitialRoute("Home");
-    } else {
-      setInitialRoute("Login");
-    }
+    // Kiểm tra token khi app khởi động
+    const checkAuthStatus = async () => {
+      try {
+        if (user && token) {
+          // Verify token bằng cách gọi API
+          const axiosInstance = (await import('./utils/axiosInstance')).default;
+          await axiosInstance.get("/auth/verify");
+          setInitialRoute("Home");
+        } else {
+          setInitialRoute("Login");
+        }
+      } catch (error) {
+        // Token không hợp lệ hoặc hết hạn
+        setInitialRoute("Login");
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
   }, [user, token]);
 
   // Chờ xác định initial route
-if (!initialRoute) {
-  return (
-    <View className="flex-1 justify-center items-center">
-      <ActivityIndicator size="large" color="#F97316" />
-    </View>
-  );
-}
+  if (isCheckingAuth || !initialRoute) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#F97316" />
+      </View>
+    );
+  }
 
 
   return (

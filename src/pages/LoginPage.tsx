@@ -12,6 +12,7 @@ import { ArrowLeft, Mail, Lock, CheckCircle, AlertCircle } from "lucide-react-na
 import { useNavigation } from "@react-navigation/native";
 import FormInput from "../components/FormInput";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import VerifyEmailModal from "../components/VerifyEmailModal";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { login, clearError } from "../redux/slices/authSlice";
@@ -25,22 +26,41 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
   const dispatch = useAppDispatch();
   
   // Get Redux state
-  const { user, loading, error: authError } = useAppSelector((state) => state.auth);
+  const { user, loading, error: authError, isVerified, pendingVerificationEmail } = useAppSelector((state) => state.auth);
   
   const [formData, setFormData] = useState({
-    usernameOrEmail: "tin18",
-    password: "123",
+    usernameOrEmail: "tin18@gmail.com",
+    password: "123456",
   });
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
-  // Clear error khi component unmount
+  // Clear error khi component unmount hoặc chuyển trang
   useEffect(() => {
     return () => {
       dispatch(clearError());
     };
   }, [dispatch]);
+
+  // Auto-hide error after 3 seconds
+  useEffect(() => {
+    if (authError) {
+      const timer = setTimeout(() => {
+        dispatch(clearError());
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [authError, dispatch]);
+
+  // Show verify modal if email not verified
+  useEffect(() => {
+    if (isVerified === false && pendingVerificationEmail) {
+      setShowVerifyModal(true);
+    }
+  }, [isVerified, pendingVerificationEmail]);
 
   // Navigate khi login thành công (chỉ khi đang trong quá trình login)
   useEffect(() => {
@@ -138,12 +158,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
 
             <View className="mb-4">
               <FormInput
-                label="Email hoặc Username"
+                label="Email"
                 type="text"
                 name="usernameOrEmail"
                 value={formData.usernameOrEmail}
                 onChange={handleInputChange}
-                placeholder="john@example.com hoặc username"
+                placeholder="john@example.com"
                 icon={Mail}
                 required
               />
@@ -225,6 +245,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onBack }) => {
           </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* Verify Email Modal */}
+      <VerifyEmailModal 
+        isOpen={showVerifyModal}
+        onClose={() => {
+          setShowVerifyModal(false);
+          dispatch(clearError());
+        }}
+        email={pendingVerificationEmail || ""}
+      />
     </KeyboardAvoidingView>
   );
 };

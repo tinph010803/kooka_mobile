@@ -18,6 +18,7 @@ import likeReducer from "./slices/likeSlice";
 import favoriteReducer from "./slices/favoriteSlice";
 import mealPlanReducer from "./slices/mealPlanSlice";
 import notificationReducer from "./slices/notificationSlice";
+import chatReducer from "./slices/chatSlice";
 
 // Cấu hình persist - Lưu auth và user vào AsyncStorage (React Native)
 const persistConfig = {
@@ -37,6 +38,7 @@ const rootReducer = combineReducers({
   favorites: favoriteReducer,
   mealPlans: mealPlanReducer,
   notifications: notificationReducer,
+  chat: chatReducer,
 });
 
 // Tạo persisted reducer
