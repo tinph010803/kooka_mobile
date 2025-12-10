@@ -2,6 +2,7 @@ import "@/global.css";
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as Linking from "expo-linking";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -17,11 +18,13 @@ import { NotificationPage } from "./pages/NotificationPage";
 import MainTabs from "./navigation/MainTabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Provider, useSelector } from "react-redux";
+import { Provider, useSelector, useDispatch } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor, RootState } from "./redux/store";
 import { ActivityIndicator, View, Text } from "react-native";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setAuthData } from "./redux/slices/authSlice";
 
 const Stack = createNativeStackNavigator();
 
@@ -50,6 +53,7 @@ const toastConfig = {
 // Component Navigation riêng để có thể sử dụng Redux hooks
 function AppNavigation() {
   const { user, token } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
@@ -75,6 +79,80 @@ function AppNavigation() {
 
     checkAuthStatus();
   }, [user, token]);
+
+  // Handle deep linking for Google OAuth callback
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      console.log("Deep link received:", url);
+      
+      // Parse the URL: kookamobile://auth/google/callback?token=XXX&user=YYY
+      const parsed = Linking.parse(url);
+      
+      // Check if this is a Google OAuth callback
+      if (parsed.path === "auth/google/callback") {
+        const params = parsed.queryParams;
+        const token = params?.token as string;
+        const userJson = params?.user as string;
+        const error = params?.error as string;
+        
+        // Handle error from backend
+        if (error) {
+          console.error("❌ Google login failed:", error);
+          Toast.show({
+            type: "error",
+            text1: "Đăng nhập thất bại",
+            text2: error === "auth_failed" ? "Xác thực Google thất bại" : error,
+          });
+          return;
+        }
+        
+        // Handle success
+        if (token && userJson) {
+          try {
+            // Save token to AsyncStorage
+            await AsyncStorage.setItem("token", token);
+            
+            // Parse user data
+            const userData = JSON.parse(decodeURIComponent(userJson));
+            await AsyncStorage.setItem("user", JSON.stringify(userData));
+            
+            // Dispatch to Redux store
+            dispatch(setAuthData({ user: userData, token }));
+            
+            console.log("✅ Login thành công!");
+            
+            Toast.show({
+              type: "success",
+              text1: "Thành công",
+              text2: "Đăng nhập Google thành công!",
+            });
+          } catch (error) {
+            console.error("❌ Lỗi khi xử lý login:", error);
+            Toast.show({
+              type: "error",
+              text1: "Lỗi",
+              text2: "Không thể xử lý đăng nhập Google",
+            });
+          }
+        }
+      }
+    };
+
+    // Listen for deep links when app is open
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+
+    // Handle initial deep link when app is opened from a link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [dispatch]);
 
   // Chờ xác định initial route
   if (isCheckingAuth || !initialRoute) {

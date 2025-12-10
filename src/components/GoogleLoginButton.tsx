@@ -1,6 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
 import Svg, { Path } from "react-native-svg";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setAuthData } from "../redux/slices/authSlice";
+import { fetchProfile } from "../redux/slices/userSlice";
+import { useAppDispatch } from "../redux/hooks";
+
+const API_URL = process.env.EXPO_PUBLIC_API_GATEWAY_URL || "https://api.kooka.site/api";
+
+// Required for web browser to dismiss properly
+WebBrowser.maybeCompleteAuthSession();
 
 interface GoogleLoginButtonProps {
   text?: "signin_with" | "signup_with" | "continue_with" | "signin";
@@ -34,6 +45,7 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   onSuccess 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useAppDispatch();
 
   const handleGoogleLogin = async () => {
     if (isLoading) return;
@@ -41,24 +53,87 @@ const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
     setIsLoading(true);
     
     try {
-      // Open Google OAuth URL
-      const authUrl = "http://localhost:3000/api/auth/google";
-      const supported = await Linking.canOpenURL(authUrl);
+      // Use Expo's auth proxy - works with Google OAuth
+      const redirectUri = makeRedirectUri({
+        path: 'auth/google/callback',
+      });
       
-      if (supported) {
-        await Linking.openURL(authUrl);
-        // Note: In a real app, you would need to implement deep linking
-        // to handle the OAuth callback
+      // Build OAuth URL with redirect URI
+      const authUrl = `${API_URL}/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
+      
+      console.log("🚀 Opening Google auth URL:", authUrl);
+      console.log("🔗 Redirect URI:", redirectUri);
+      console.log("🌐 API_URL:", API_URL);
+      
+      // Open browser for authentication
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUri
+      );
+      
+      console.log("📱 WebBrowser result:", result);
+      
+      if (result.type === "success") {
+        // Parse token and user from URL
+        const url = result.url;
+        const params = new URL(url).searchParams;
+        const token = params.get("token");
+        const userJson = params.get("user");
+        const error = params.get("error");
+        
+        if (error) {
+          console.error("❌ Google login failed:", error);
+          Alert.alert("Đăng nhập thất bại", error === "auth_failed" ? "Xác thực Google thất bại" : error);
+          return;
+        }
+        
+        if (token && userJson) {
+          try {
+            // Save token to AsyncStorage
+            await AsyncStorage.setItem("token", token);
+            
+            // Parse user data
+            const userData = JSON.parse(decodeURIComponent(userJson));
+            
+            console.log("📦 User data from backend:", userData);
+            console.log("🔑 Token:", token);
+            
+            await AsyncStorage.setItem("user", JSON.stringify(userData));
+            
+            // Dispatch to Redux store
+            dispatch(setAuthData({ user: userData, token }));
+            
+            // Fetch user profile to get full information
+            if (userData._id) {
+              dispatch(fetchProfile(userData._id));
+            }
+            
+            // console.log("✅ Login thành công! User:", userData.username || userData.email);
+            
+            onSuccess?.();
+          } catch (parseError) {
+            console.error("❌ Lỗi parse data:", parseError);
+            console.error("Raw userJson:", userJson);
+            Alert.alert("Lỗi", "Không thể xử lý dữ liệu đăng nhập");
+          }
+        } else {
+          console.error("❌ Missing data - Token:", !!token, "UserJson:", !!userJson);
+          Alert.alert("Lỗi", "Không nhận được thông tin đăng nhập từ server");
+        }
+      } else if (result.type === "cancel") {
+        console.log("⚠️ User cancelled authentication");
+      } else if (result.type === "dismiss") {
+        console.log("⚠️ Browser dismissed");
       }
       
-      // Mock success for demo - replace with actual OAuth flow
-      setTimeout(() => {
-        onSuccess?.();
-        setIsLoading(false);
-      }, 2000);
-      
-    } catch (error) {
-      console.error("Google auth failed:", error);
+    } catch (error: any) {
+      console.error("❌ Google auth failed:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      Alert.alert(
+        "Lỗi đăng nhập", 
+        `Không thể kết nối đến server.\n\nChi tiết: ${error.message || "Unknown error"}`
+      );
+    } finally {
       setIsLoading(false);
     }
   };
