@@ -6,44 +6,11 @@ import {
     TouchableOpacity,
     TextInput,
     ScrollView,
-    FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { fetchIngredientTypes } from "../redux/slices/recipeSlice";
-
-// Helper function to get default unit for ingredient
-const getDefaultUnit = (ingredientName: string): string => {
-    const name = ingredientName.toLowerCase();
-    
-    // Rau củ, trái cây -> gram hoặc kg
-    if (name.includes("rau") || name.includes("củ") || name.includes("cà")) {
-        return "gram";
-    }
-    
-    // Thịt, cá -> gram hoặc kg
-    if (name.includes("thịt") || name.includes("cá") || name.includes("tôm") || name.includes("mực")) {
-        return "gram";
-    }
-    
-    // Nước, dầu -> ml
-    if (name.includes("nước") || name.includes("dầu") || name.includes("tương") || name.includes("giấm")) {
-        return "ml";
-    }
-    
-    // Bột, gạo -> gram
-    if (name.includes("bột") || name.includes("gạo") || name.includes("mì")) {
-        return "gram";
-    }
-    
-    // Gia vị nhỏ -> muỗng canh
-    if (name.includes("muối") || name.includes("đường") || name.includes("tiêu") || name.includes("bột ngọt")) {
-        return "muỗng canh";
-    }
-    
-    // Default
-    return "gram";
-};
+import { getDefaultUnit } from "../utils/ingredientUnits";
 
 // Helper to remove Vietnamese accents
 const removeAccents = (str: string): string => {
@@ -54,6 +21,7 @@ const removeAccents = (str: string): string => {
         .replace(/Đ/g, "D");
 };
 
+// Helper to check if string has Vietnamese accents
 const hasAccents = (str: string): boolean => {
     return /[áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ]/i.test(str);
 };
@@ -95,10 +63,11 @@ export default function IngredientSelectorUnitModal({
         }
     }, [visible, dispatch]);
 
-    // Reset local state when modal opens
+    // Reset local state when modal opens - CHỈ khi modal mở
     useEffect(() => {
         if (visible) {
             setLocalSelectedIngredients([...selectedIngredients]);
+            // Sử dụng existingIngredientDetails nếu có, nếu không thì dùng giá trị mặc định
             const defaultQuantities: Record<string, { quantity: number; unit: string }> = {};
             selectedIngredients.forEach((ingredient) => {
                 defaultQuantities[ingredient] = existingIngredientDetails[ingredient] || {
@@ -108,9 +77,9 @@ export default function IngredientSelectorUnitModal({
             });
             setIngredientQuantities(defaultQuantities);
         }
-    }, [visible]);
+    }, [visible]); // CHỈ phụ thuộc vào visible
 
-    // Auto select first category
+    // Auto chọn category đầu tiên
     useEffect(() => {
         if (ingredientTypes.length > 0 && !activeCategory) {
             setActiveCategory(ingredientTypes[0]._id);
@@ -120,11 +89,13 @@ export default function IngredientSelectorUnitModal({
     const handleIngredientToggle = (ingredient: string) => {
         setLocalSelectedIngredients((prev) => {
             if (prev.includes(ingredient)) {
+                // Xóa ingredient và quantity của nó
                 const newQuantities = { ...ingredientQuantities };
                 delete newQuantities[ingredient];
                 setIngredientQuantities(newQuantities);
                 return prev.filter((item) => item !== ingredient);
             } else {
+                // Thêm ingredient và set quantity mặc định
                 const defaultUnit = getDefaultUnit(ingredient);
                 setIngredientQuantities((prev) => ({
                     ...prev,
@@ -153,12 +124,13 @@ export default function IngredientSelectorUnitModal({
     };
 
     const handleClose = () => {
+        // Reset về trạng thái ban đầu khi đóng mà không apply
         setLocalSelectedIngredients([...selectedIngredients]);
         setIngredientQuantities({});
         onClose();
     };
 
-    // Group ingredients by type
+    // Nhóm ingredients theo type
     const groupedIngredients = useMemo(() => {
         const groups: Record<string, string[]> = {};
         ingredientTypes.forEach((type) => {
@@ -169,12 +141,13 @@ export default function IngredientSelectorUnitModal({
         return groups;
     }, [ingredients, ingredientTypes]);
 
-    // Filter ingredients by search
+    // Filter ingredient theo search
     const getFilteredIngredients = () => {
         if (!searchTerm.trim()) {
             return activeCategory ? groupedIngredients[activeCategory] || [] : [];
         }
 
+        // If searching, show matches from all categories
         const lowercaseSearch = searchTerm.toLowerCase().trim();
         const searchHasAccents = hasAccents(lowercaseSearch);
         const accentFreeSearch = removeAccents(lowercaseSearch);
@@ -209,15 +182,18 @@ export default function IngredientSelectorUnitModal({
         <Modal visible={visible} animationType="slide" transparent={true}>
             <View className="flex-1 bg-black/50 justify-end">
                 <View className="bg-white rounded-t-3xl h-4/5">
-                    {/* Header */}
-                    <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
-                        <Text className="text-xl font-bold">Chọn nguyên liệu</Text>
-                        <TouchableOpacity onPress={handleClose}>
+                    {/* Header with close button */}
+                    <View className="relative p-4 border-b border-gray-200">
+                        <TouchableOpacity
+                            onPress={handleClose}
+                            className="absolute top-3 right-3 z-10"
+                        >
                             <Ionicons name="close" size={24} color="#6B7280" />
                         </TouchableOpacity>
+                        <Text className="text-xl font-bold">Chọn nguyên liệu</Text>
                     </View>
 
-                    {/* Search */}
+                    {/* Search bar */}
                     <View className="px-4 py-3">
                         <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
                             <Ionicons name="search" size={20} color="#9CA3AF" />
@@ -230,6 +206,7 @@ export default function IngredientSelectorUnitModal({
                         </View>
                     </View>
 
+                    {/* Main content area - flex-1 to fill remaining space */}
                     <View className="flex-1 flex-row">
                         {/* Categories - hidden when searching */}
                         {!searchTerm && (
@@ -238,7 +215,7 @@ export default function IngredientSelectorUnitModal({
                                     <TouchableOpacity
                                         key={type._id}
                                         onPress={() => setActiveCategory(type._id)}
-                                        className={`px-3 py-3 rounded-lg mb-1 ${
+                                        className={`px-3 py-2 rounded-lg mb-1 ${
                                             activeCategory === type._id
                                                 ? "bg-orange-100"
                                                 : "bg-transparent"
@@ -264,12 +241,12 @@ export default function IngredientSelectorUnitModal({
                                 getFilteredIngredients().map((ingredient) => (
                                     <View
                                         key={ingredient}
-                                        className="border border-gray-200 rounded-xl p-3 mb-3"
+                                        className="border border-gray-200 rounded-lg p-3 mb-3"
                                     >
-                                        {/* Checkbox and name */}
+                                        {/* Checkbox và tên nguyên liệu */}
                                         <TouchableOpacity
                                             onPress={() => handleIngredientToggle(ingredient)}
-                                            className="flex-row items-center mb-2"
+                                            className="flex-row items-center"
                                         >
                                             <Ionicons
                                                 name={
@@ -289,9 +266,9 @@ export default function IngredientSelectorUnitModal({
                                             </Text>
                                         </TouchableOpacity>
 
-                                        {/* Quantity and unit */}
+                                        {/* Số lượng và đơn vị - hiển thị khi được chọn */}
                                         {localSelectedIngredients.includes(ingredient) && (
-                                            <View className="flex-row items-center ml-8 mt-2">
+                                            <View className="flex-row items-center ml-7 mt-2 gap-2">
                                                 <TextInput
                                                     keyboardType="decimal-pad"
                                                     value={String(
@@ -301,9 +278,9 @@ export default function IngredientSelectorUnitModal({
                                                         const num = parseFloat(text) || 1;
                                                         handleQuantityChange(ingredient, num);
                                                     }}
-                                                    className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white"
+                                                    className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-lg bg-white"
                                                 />
-                                                <Text className="ml-2 text-sm text-gray-600 font-medium">
+                                                <Text className="text-sm text-gray-600 font-medium">
                                                     {ingredientQuantities[ingredient]?.unit ||
                                                         getDefaultUnit(ingredient)}
                                                 </Text>
@@ -312,32 +289,38 @@ export default function IngredientSelectorUnitModal({
                                     </View>
                                 ))
                             ) : (
-                                <Text className="text-gray-500 text-center pt-8">
+                                <Text className="text-gray-500 text-center pt-4">
                                     Không tìm thấy nguyên liệu nào
                                 </Text>
                             )}
                         </ScrollView>
                     </View>
 
-                    {/* Footer */}
+                    {/* Footer with selected details */}
                     <View className="p-4 border-t border-gray-200">
                         <View className="mb-3">
                             <Text className="text-sm text-gray-600 font-medium mb-2">
-                                Đã chọn {localSelectedIngredients.length} nguyên liệu
+                                Đã chọn {localSelectedIngredients.length} nguyên liệu:
                             </Text>
-                            {localSelectedIngredients.length > 0 && (
-                                <ScrollView className="max-h-16 bg-gray-50 rounded-lg p-2">
-                                    <Text className="text-sm text-gray-700">
-                                        {localSelectedIngredients
-                                            .map((ingredient) => {
-                                                const qty = ingredientQuantities[ingredient];
-                                                return `${ingredient} (${qty?.quantity || 1} ${
-                                                    qty?.unit || getDefaultUnit(ingredient)
-                                                })`;
-                                            })
-                                            .join(", ")}
-                                    </Text>
-                                </ScrollView>
+                            {localSelectedIngredients.length > 0 ? (
+                                <View className="bg-gray-50 rounded-lg p-3 max-h-20">
+                                    <ScrollView>
+                                        <Text className="text-sm text-gray-700">
+                                            {localSelectedIngredients
+                                                .map((ingredient) => {
+                                                    const qty = ingredientQuantities[ingredient];
+                                                    return `${ingredient} (${qty?.quantity || 1} ${
+                                                        qty?.unit || getDefaultUnit(ingredient)
+                                                    })`;
+                                                })
+                                                .join(", ")}
+                                        </Text>
+                                    </ScrollView>
+                                </View>
+                            ) : (
+                                <Text className="text-gray-400 italic text-sm">
+                                    Chưa có nguyên liệu nào được chọn
+                                </Text>
                             )}
                         </View>
 
@@ -345,7 +328,7 @@ export default function IngredientSelectorUnitModal({
                             <TouchableOpacity
                                 onPress={handleClear}
                                 disabled={localSelectedIngredients.length === 0}
-                                className={`flex-1 py-3 border rounded-xl ${
+                                className={`flex-1 py-3 border rounded-lg ${
                                     localSelectedIngredients.length === 0
                                         ? "border-gray-200 bg-gray-50"
                                         : "border-gray-300 bg-white"
@@ -363,9 +346,11 @@ export default function IngredientSelectorUnitModal({
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={handleApply}
-                                className="flex-1 py-3 bg-orange-500 rounded-xl"
+                                className="flex-1 py-3 bg-orange-500 rounded-lg"
                             >
-                                <Text className="text-center text-white font-bold">Áp dụng</Text>
+                                <Text className="text-center text-white font-bold">
+                                    Áp dụng
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>

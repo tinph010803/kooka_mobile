@@ -136,51 +136,57 @@ export default function MySubmissionsPage() {
             </View>
 
             {/* Stats Cards */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="px-4 py-2"
-            >
-                <View className="bg-blue-50 rounded-xl p-2 mr-2 w-24">
-                    <View className="items-center">
-                        <Ionicons name="calendar" size={20} color="#3B82F6" />
-                        <Text className="text-lg font-bold text-gray-900 mt-1">
-                            {mySubmissions.length}
-                        </Text>
+         {/* Stats Cards */}
+            {/* Stats Cards */}
+            <View className="flex-row flex-wrap px-4 py-3 gap-3">
+                <View className="bg-blue-100 rounded-2xl p-4 shadow-sm" style={{ width: '47%' }}>
+                    <View className="flex-row items-center justify-between mb-2">
                         <Text className="text-gray-600 text-xs">Tất cả</Text>
+                        <View className=" w-8 h-8 rounded-full items-center justify-center">
+                            <Ionicons name="calendar" size={16} color="#3B82F6" />
+                        </View>
                     </View>
+                    <Text className="text-2xl font-bold text-gray-900">
+                        {mySubmissions.length}
+                    </Text>
                 </View>
 
-                <View className="bg-yellow-50 rounded-xl p-2 mr-2 w-24">
-                    <View className="items-center">
-                        <Ionicons name="time-outline" size={20} color="#F59E0B" />
-                        <Text className="text-lg font-bold text-yellow-700 mt-1">
-                            {pendingCount}
-                        </Text>
+                <View className="bg-yellow-100 rounded-2xl p-4 shadow-sm" style={{ width: '47%' }}>
+                    <View className="flex-row items-center justify-between mb-2">
                         <Text className="text-gray-600 text-xs">Chờ duyệt</Text>
+                        <View className=" w-8 h-8 rounded-full items-center justify-center">
+                            <Ionicons name="time-outline" size={16} color="#F59E0B" />
+                        </View>
                     </View>
+                    <Text className="text-2xl font-bold text-yellow-600">
+                        {pendingCount}
+                    </Text>
                 </View>
 
-                <View className="bg-green-50 rounded-xl p-2 mr-2 w-24">
-                    <View className="items-center">
-                        <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                        <Text className="text-lg font-bold text-green-700 mt-1">
-                            {approvedCount}
-                        </Text>
+                <View className="bg-green-100 rounded-2xl p-4 shadow-sm" style={{ width: '47%' }}>
+                    <View className="flex-row items-center justify-between mb-2">
                         <Text className="text-gray-600 text-xs">Đã duyệt</Text>
+                        <View className=" w-8 h-8 rounded-full items-center justify-center">
+                            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                        </View>
                     </View>
+                    <Text className="text-2xl font-bold text-green-600">
+                        {approvedCount}
+                    </Text>
                 </View>
 
-                <View className="bg-red-50 rounded-xl p-2 w-24">
-                    <View className="items-center">
-                        <Ionicons name="close-circle" size={20} color="#EF4444" />
-                        <Text className="text-lg font-bold text-red-700 mt-1">
-                            {rejectedCount}
-                        </Text>
-                        <Text className="text-gray-600 text-xs mt-0.5">Bị từ chối</Text>
+                <View className="bg-red-100 rounded-2xl p-4 shadow-sm" style={{ width: '47%' }}>
+                    <View className="flex-row items-center justify-between mb-2">
+                        <Text className="text-gray-600 text-xs">Bị từ chối</Text>
+                        <View className=" w-8 h-8 rounded-full items-center justify-center">
+                            <Ionicons name="close-circle" size={16} color="#EF4444" />
+                        </View>
                     </View>
+                    <Text className="text-2xl font-bold text-red-600">
+                        {rejectedCount}
+                    </Text>
                 </View>
-            </ScrollView>
+            </View>
 
             {/* Filter Tabs */}
             <View className="bg-white mx-4 rounded-xl shadow-sm overflow-hidden mb-4">
