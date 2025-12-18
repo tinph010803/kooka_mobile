@@ -24,6 +24,7 @@ import { createSubmission } from "../redux/slices/submissionSlice";
 import IngredientSelectorUnitModal from "../components/IngredientSelectorUnitModal";
 import Toast from "react-native-toast-message";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 
 interface IngredientWithDetails {
     ingredientId: string;
@@ -168,16 +169,32 @@ export default function SuggestRecipePage() {
         });
 
         if (!result.canceled && result.assets[0]) {
-            const uri = result.assets[0].uri;
-            if (forInstruction) {
-                if (currentInstruction.images.length < 4) {
-                    setCurrentInstruction((prev) => ({
-                        ...prev,
-                        images: [...prev.images, uri],
-                    }));
+            try {
+                // ✅ ĐÚNG - Convert sang base64
+                const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+                    encoding: 'base64',
+                });
+                
+                const imageData = `data:image/jpeg;base64,${base64}`;
+                
+                if (forInstruction) {
+                    if (currentInstruction.images.length < 4) {
+                        setCurrentInstruction((prev) => ({
+                            ...prev,
+                            images: [...prev.images, imageData],
+                        }));
+                    }
+                } else {
+                    setRecipe((prev) => ({ ...prev, image: imageData }));
                 }
-            } else {
-                setRecipe((prev) => ({ ...prev, image: uri }));
+            } catch (error) {
+                console.error("Error converting image to base64:", error);
+                Toast.show({
+                    type: "error",
+                    text1: "❌ Lỗi",
+                    text2: "Không thể xử lý ảnh",
+                    position: "top",
+                });
             }
         }
     };

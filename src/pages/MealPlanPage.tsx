@@ -9,6 +9,7 @@ import {
     Image,
     Dimensions,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
@@ -50,6 +51,7 @@ interface AIGeneratedPlan {
     plans: MealPlanDay[]; // Backend returns plans array (7 days), without date
     totalRecipes: number;
 }
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -152,8 +154,6 @@ export default function MealPlanPage() {
                 return;
             }
 
-            // No limit on meal plans - users can create as many as they want
-
             // Set view mode to creating
             setViewMode('creating');
 
@@ -199,13 +199,13 @@ export default function MealPlanPage() {
             // Tìm plan chứa ngày hôm nay
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             const planWithToday = sortedMealPlans.findIndex(plan => {
                 const startDate = new Date(plan.startDate);
                 startDate.setHours(0, 0, 0, 0);
                 const endDate = new Date(plan.endDate);
                 endDate.setHours(0, 0, 0, 0);
-                
+
                 return today >= startDate && today <= endDate;
             });
 
@@ -213,7 +213,7 @@ export default function MealPlanPage() {
             let targetIndex;
             if (planWithToday !== -1) {
                 targetIndex = planWithToday;
-                
+
                 // Tính toán index của ngày hôm nay trong tuần
                 const planStart = new Date(sortedMealPlans[planWithToday].startDate);
                 planStart.setHours(0, 0, 0, 0);
@@ -286,7 +286,9 @@ export default function MealPlanPage() {
         if (editingPlans.length > 0) {
             fetchDetailedRecipes();
         }
-    }, [editingPlans, dispatch]);    // Generate week dates with useMemo to prevent recalculation
+    }, [editingPlans, dispatch]);
+
+    // Generate week dates with useMemo to prevent recalculation
     const weekDates = useMemo((): Date[] => {
         if (viewMode === "creating" && selectedStartDate) {
             const dates = [];
@@ -351,11 +353,45 @@ export default function MealPlanPage() {
     };
 
     // Check if start date conflicts with existing plans (±6 days)
-    // NOTE: Conflict check is disabled - users can create unlimited meal plans
     const isStartDateConflict = (
         newStartDate: Date
     ): { hasConflict: boolean; conflictMessage?: string } => {
-        // Always return no conflict - users can create plans on any date
+        const normalizedNewDate = new Date(newStartDate);
+        normalizedNewDate.setHours(0, 0, 0, 0);
+
+        for (const existingPlan of sortedMealPlans) {
+            const existingStart = new Date(existingPlan.startDate);
+            existingStart.setHours(0, 0, 0, 0);
+
+            const forbiddenStart = new Date(existingStart);
+            forbiddenStart.setDate(existingStart.getDate() - 6);
+            forbiddenStart.setHours(0, 0, 0, 0);
+
+            const forbiddenEnd = new Date(existingStart);
+            forbiddenEnd.setDate(existingStart.getDate() + 6);
+            forbiddenEnd.setHours(0, 0, 0, 0);
+
+            if (
+                normalizedNewDate >= forbiddenStart &&
+                normalizedNewDate <= forbiddenEnd
+            ) {
+                const formatDateVN = (date: Date) =>
+                    `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
+                        .toString()
+                        .padStart(2, "0")}/${date.getFullYear()}`;
+
+                const message = `Ngày bắt đầu (${formatDateVN(
+                    normalizedNewDate
+                )}) nằm trong vùng cấm (từ ${formatDateVN(
+                    forbiddenStart
+                )} đến ${formatDateVN(forbiddenEnd)}) của kế hoạch bắt đầu ${formatDateVN(
+                    existingStart
+                )}.`;
+
+                return { hasConflict: true, conflictMessage: message };
+            }
+        }
+
         return { hasConflict: false };
     };
 
@@ -372,10 +408,10 @@ export default function MealPlanPage() {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        // Only disable past dates - no conflict check
         if (normalizedDate < tomorrow) return true;
 
-        return false;
+        const conflictCheck = isStartDateConflict(normalizedDate);
+        return conflictCheck.hasConflict;
     };
 
     // Count number of changes from original plan
@@ -718,7 +754,6 @@ export default function MealPlanPage() {
                 });
             }
         } catch (err) {
-            console.error("❌ Error saving meal plan:", err);
             const errorMessage =
                 err instanceof Error ? err.message : "Có lỗi xảy ra";
             Toast.show({
@@ -875,13 +910,13 @@ export default function MealPlanPage() {
         return Array.from(ingredientMap.values());
     };
 
-    // Categorize shopping list into main ingredients and seasonings
+    // Phân loại ingredients thành nguyên liệu chính và gia vị
     const categorizeShoppingList = () => {
         const allItems = generateShoppingList();
         const mainIngredients: typeof allItems = [];
         const seasonings: typeof allItems = [];
 
-        // List of common seasonings (can be expanded)
+        // Danh sách gia vị thường gặp (có thể mở rộng)
         const seasoningKeywords = [
             'muối', 'đường', 'tiêu', 'bột ngọt', 'nước mắm', 'dầu', 'giấm',
             'tương', 'mè', 'mật ong', 'ớt', 'ngũ vị hương', 'quế', 'hồi',
@@ -890,7 +925,7 @@ export default function MealPlanPage() {
             'chili', 'ginger', 'garlic', 'onion', 'powder'
         ];
 
-        // Small cooking measurements (not shopping units)
+        // Đơn vị đo lường nhỏ không phải đơn vị mua
         const cookingMeasurements = [
             'muỗng canh', 'muỗng cà phê', 'muỗng', 'thìa', 'thia',
             'nhúm', 'chút', 'ít', 'vừa đủ', 'tép', 'miếng',
@@ -902,20 +937,22 @@ export default function MealPlanPage() {
                 ? recipes.flatMap(r => r.ingredients).find(ing => ing._id === item.ingredientId)
                 : null;
 
-            // Check by typeId or name
+            // Kiểm tra theo typeId hoặc tên
             const isSeasoningByType = ingredientObj?.typeId &&
-                ['gia vị', 'seasoning', 'spices'].some(s => ingredientObj.typeId.toLowerCase().includes(s));
+                ['gia vị', 'seasoning', 'spices'].some(s =>
+                    (ingredientObj.typeId as string).toLowerCase().includes(s)
+                );
 
             const isSeasoningByName = seasoningKeywords.some(keyword =>
                 item.name.toLowerCase().includes(keyword.toLowerCase())
             );
 
-            // Check if it's a small cooking measurement
+            // Kiểm tra xem có phải đơn vị đo lường nhỏ không
             const isSmallMeasurement = cookingMeasurements.some(unit =>
                 item.unit.toLowerCase().includes(unit.toLowerCase())
             );
 
-            // Process item with small measurement - only save name
+            // Xử lý item với đơn vị nhỏ - chỉ lưu tên
             const processedItem = isSmallMeasurement
                 ? { ...item, quantity: 0, unit: '' }
                 : item;
@@ -989,7 +1026,12 @@ export default function MealPlanPage() {
         <View className="flex-1 bg-gray-50">
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Header */}
-                <View className="bg-gradient-to-br from-green-50 to-blue-50 pt-12 pb-6 px-4">
+                <LinearGradient
+                    colors={['#ECFDF5', '#EFF6FF']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="pt-12 pb-6 px-4"
+                >
                     <View className="flex-row items-center justify-between mb-4">
                         <View className="flex-row items-center">
                             <Ionicons name="calendar" size={32} color="#10B981" />
@@ -1009,20 +1051,17 @@ export default function MealPlanPage() {
 
                     {/* Stats */}
                     <View className="flex-row gap-3 mt-4">
-                        <View className="flex-1 bg-white rounded-xl p-4 shadow-sm">
-                            <Text className="text-gray-500 text-xs font-medium mb-2">Tổng món</Text>
-                            <Text className="text-3xl font-bold text-orange-500">
+                        <View className="flex-1 bg-white rounded-xl p-4">
+                            <Text className="text-gray-500 text-xs mb-1">Tổng món</Text>
+                            <Text className="text-2xl font-bold text-orange-500">
                                 {stats.totalRecipes}
                             </Text>
                         </View>
-                        <View className="flex-1 bg-white rounded-xl p-4 shadow-sm">
-                            <Text className="text-gray-500 text-xs font-medium mb-2">Thời gian</Text>
-                            <View className="flex-row items-baseline">
-                                <Text className="text-3xl font-bold text-green-500">
-                                    {stats.totalTime}
-                                </Text>
-                                <Text className="text-lg font-semibold text-green-500 ml-1">phút</Text>
-                            </View>
+                        <View className="flex-1 bg-white rounded-xl p-4">
+                            <Text className="text-gray-500 text-xs mb-1">Thời gian</Text>
+                            <Text className="text-2xl font-bold text-green-500">
+                                {stats.totalTime}p
+                            </Text>
                         </View>
                     </View>
 
@@ -1032,8 +1071,8 @@ export default function MealPlanPage() {
                             <TouchableOpacity
                                 onPress={() => setActiveTab('planner')}
                                 className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${activeTab === 'planner'
-                                        ? 'bg-orange-500'
-                                        : 'bg-white border border-gray-200'
+                                    ? 'bg-orange-500'
+                                    : 'bg-white border border-gray-200'
                                     }`}
                             >
                                 <Ionicons
@@ -1049,8 +1088,8 @@ export default function MealPlanPage() {
                             <TouchableOpacity
                                 onPress={() => setActiveTab('shopping')}
                                 className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${activeTab === 'shopping'
-                                        ? 'bg-orange-500'
-                                        : 'bg-white border border-gray-200'
+                                    ? 'bg-orange-500'
+                                    : 'bg-white border border-gray-200'
                                     }`}
                             >
                                 <Ionicons
@@ -1065,7 +1104,7 @@ export default function MealPlanPage() {
                             </TouchableOpacity>
                         </View>
                     )}
-                </View>
+                </LinearGradient>
 
                 {/* Plan Navigation */}
                 {viewMode === "viewing" && sortedMealPlans.length > 0 && currentPlan && (
@@ -1080,14 +1119,29 @@ export default function MealPlanPage() {
                             </TouchableOpacity>
 
                             <View className="flex-1 items-center">
-                                <Text className="text-base font-bold text-gray-900">
-                                    {new Date(currentPlan.startDate).toLocaleDateString("vi-VN")} - {new Date(currentPlan.endDate).toLocaleDateString("vi-VN")}
+                                <Text className="text-sm text-gray-500">
+                                    Kế hoạch {currentPlanIndex + 1}/{sortedMealPlans.length}
                                 </Text>
-                                <Text className="text-sm text-gray-500 mt-1">
-                                    Kế hoạch {currentPlanIndex + 1}/{sortedMealPlans.length} • <Text className={currentPlan.status === "pending" ? "text-yellow-600" : "text-green-600"}>
-                                        {currentPlan.status === "pending" ? "Đang thực hiện" : "Hoàn thành"}
+                                <Text className="text-base font-semibold text-gray-900">
+                                    {new Date(currentPlan.startDate).toLocaleDateString("vi-VN")}
+                                </Text>
+                                <View
+                                    className={`px-3 py-1 rounded-full mt-1 ${currentPlan.status === "pending"
+                                        ? "bg-yellow-100"
+                                        : "bg-green-100"
+                                        }`}
+                                >
+                                    <Text
+                                        className={`text-xs font-semibold ${currentPlan.status === "pending"
+                                            ? "text-yellow-700"
+                                            : "text-green-700"
+                                            }`}
+                                    >
+                                        {currentPlan.status === "pending"
+                                            ? "Đang thực hiện"
+                                            : "Hoàn thành"}
                                     </Text>
-                                </Text>
+                                </View>
                             </View>
 
                             <TouchableOpacity
@@ -1105,215 +1159,163 @@ export default function MealPlanPage() {
                     </View>
                 )}
 
-                {/* Today's Date Indicator */}
-                {(viewMode === "viewing" || viewMode === "creating") && activeTab === 'planner' && weekDates && weekDates.length > 0 && currentViewingDateIndex < weekDates.length && (() => {
-                    const viewingDate = weekDates[currentViewingDateIndex];
-                    if (!viewingDate) return null;
-                    
-                    try {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const compareDate = new Date(viewingDate);
-                        compareDate.setHours(0, 0, 0, 0);
-                        
-                        const isToday = today.getTime() === compareDate.getTime();
-                        const dayName = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"][viewingDate.getDay()];
-                        
-                        return (
-                            <View className="px-4 pt-4 pb-2">
-                                <View className={`rounded-xl p-3 border ${
-                                    isToday 
-                                        ? 'bg-orange-100 border-orange-400' 
-                                        : 'bg-gray-50 border-gray-200'
-                                }`}>
-                                    <View className="flex-row items-center justify-center">
-                                        <Ionicons 
-                                            name={isToday ? "calendar" : "calendar-outline"} 
-                                            size={20} 
-                                            color={isToday ? "#F97316" : "#6B7280"} 
-                                        />
-                                        <Text className={`font-bold text-base ml-2 ${
-                                            isToday ? 'text-orange-600' : 'text-gray-700'
-                                        }`}>
-                                            {dayName}, {viewingDate.getDate().toString().padStart(2, '0')}/{(viewingDate.getMonth() + 1).toString().padStart(2, '0')}
-                                        </Text>
-                                        {isToday && (
-                                            <View className="bg-orange-500 px-2 py-0.5 rounded-full ml-2">
-                                                <Text className="text-white text-xs font-bold">Hôm nay</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                </View>
-                            </View>
-                        );
-                    } catch (error) {
-                        console.error("Error rendering date indicator:", error);
-                        return null;
-                    }
-                })()}
-
                 {/* Shopping List Tab - Moved up here */}
                 {activeTab === 'shopping' && (viewMode === "viewing" || viewMode === "creating") && (
                     <View className="px-4 mt-4">
                         <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             {/* Header */}
-                            <View className="bg-orange-100 px-4 py-4">
+                            <LinearGradient
+                                colors={['#F97316', '#EF4444']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                className="px-4 py-4"
+                            >
                                 <View className="flex-row items-center justify-between">
                                     <View className="flex-row items-center">
-                                        <Ionicons name="cart" size={24} color="#F97316" />
-                                        <Text className="text-orange-900 text-lg font-bold ml-2">
+                                        <Ionicons name="cart" size={24} color="#FFF" />
+                                        <Text className="text-white text-lg font-bold ml-2">
                                             Danh sách mua sắm
                                         </Text>
                                     </View>
-                                    <View className="bg-orange-200 px-3 py-1 rounded-full">
-                                        <Text className="text-orange-900 text-xs font-semibold">
-                                            {(() => {
-                                                const { mainIngredients, seasonings } = categorizeShoppingList();
-                                                return mainIngredients.length + seasonings.length;
-                                            })()} nguyên liệu
+                                    <View className="bg-white/20 px-3 py-1 rounded-full">
+                                        <Text className="text-white text-xs font-semibold">
+                                            {generateShoppingList().length} nguyên liệu
                                         </Text>
                                     </View>
                                 </View>
-                            </View>
+                            </LinearGradient>
 
                             {/* Shopping List Content */}
                             <View className="p-4">
-                                {(() => {
-                                    const { mainIngredients, seasonings } = categorizeShoppingList();
-                                    const hasItems = mainIngredients.length > 0 || seasonings.length > 0;
-
-                                    return hasItems ? (
-                                        <View>
-                                            {/* Main Ingredients Section */}
-                                            {mainIngredients.length > 0 && (
-                                                <View className="mb-6">
-                                                    <View className="flex-row items-center mb-3">
-                                                        <Ionicons name="basket" size={20} color="#10B981" />
-                                                        <Text className="text-base font-bold text-gray-900 ml-2">
-                                                            📦 Nguyên Liệu Chính
-                                                        </Text>
-                                                    </View>
-                                                    {mainIngredients.map((item, index) => (
-                                                        <TouchableOpacity
-                                                            key={`${item.name}-${index}`}
-                                                            onPress={() => toggleIngredientCheck(item.name)}
-                                                            className={`flex-row items-center py-3 ${
-                                                                index !== mainIngredients.length - 1
-                                                                    ? 'border-b border-gray-100'
-                                                                    : ''
-                                                            }`}
-                                                            activeOpacity={0.7}
-                                                        >
-                                                            {/* Checkbox */}
-                                                            <View
-                                                                className={`w-6 h-6 rounded-md border-2 mr-3 items-center justify-center ${
-                                                                    checkedIngredients.has(item.name)
-                                                                        ? 'bg-green-500 border-green-500'
-                                                                        : 'border-gray-300 bg-white'
-                                                                }`}
-                                                            >
-                                                                {checkedIngredients.has(item.name) && (
-                                                                    <Ionicons name="checkmark" size={16} color="#FFF" />
-                                                                )}
-                                                            </View>
-
-                                                            {/* Ingredient Info */}
-                                                            <View className="flex-1">
-                                                                <Text
-                                                                    className={`text-base ${
-                                                                        checkedIngredients.has(item.name)
-                                                                            ? 'text-gray-400 line-through'
-                                                                            : 'text-gray-900 font-medium'
-                                                                    }`}
-                                                                >
-                                                                    {item.name}
+                                {generateShoppingList().length === 0 ? (
+                                    <View className="items-center py-12">
+                                        <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
+                                        <Text className="text-gray-500 mt-4 text-center">
+                                            Chưa có nguyên liệu nào{'\n'}Hãy thêm món ăn vào kế hoạch!
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <View>
+                                        {(() => {
+                                            const { mainIngredients, seasonings } = categorizeShoppingList();
+                                            return (
+                                                <>
+                                                    {/* Main Ingredients Section */}
+                                                    {mainIngredients.length > 0 && (
+                                                        <View className="mb-6">
+                                                            <View className="flex-row items-center mb-3">
+                                                                <Text className="text-base font-bold text-gray-900">
+                                                                    🥬 Nguyên liệu chính
                                                                 </Text>
-                                                            </View>
-
-                                                            {/* Quantity Badge */}
-                                                            {item.quantity > 0 && item.unit && (
-                                                                <View className="bg-green-100 px-2.5 py-1 rounded-full">
-                                                                    <Text className="text-green-700 text-xs font-semibold">
-                                                                        {item.quantity} {item.unit}
+                                                                <View className="ml-2 bg-orange-100 px-2 py-0.5 rounded-full">
+                                                                    <Text className="text-xs font-semibold text-orange-700">
+                                                                        {mainIngredients.length}
                                                                     </Text>
                                                                 </View>
-                                                            )}
-                                                        </TouchableOpacity>
-                                                    ))}
-                                                </View>
-                                            )}
-
-                                            {/* Seasonings Section */}
-                                            {seasonings.length > 0 && (
-                                                <View>
-                                                    <View className="flex-row items-center mb-2">
-                                                        <Text className="text-lg mr-1">🧂</Text>
-                                                        <Text className="text-base font-bold text-gray-900">
-                                                            Gia Vị Cần Kiểm Tra
-                                                        </Text>
-                                                    </View>
-                                                    <Text className="text-xs text-gray-500 italic mb-3">
-                                                        (Kiểm tra tủ bếp trước khi mua)
-                                                    </Text>
-                                                    {seasonings.map((item, index) => (
-                                                        <TouchableOpacity
-                                                            key={`${item.name}-${index}`}
-                                                            onPress={() => toggleIngredientCheck(item.name)}
-                                                            className={`flex-row items-center py-3 ${
-                                                                index !== seasonings.length - 1
-                                                                    ? 'border-b border-gray-100'
-                                                                    : ''
-                                                            }`}
-                                                            activeOpacity={0.7}
-                                                        >
-                                                            {/* Checkbox */}
-                                                            <View
-                                                                className={`w-6 h-6 rounded-md border-2 mr-3 items-center justify-center ${
-                                                                    checkedIngredients.has(item.name)
-                                                                        ? 'bg-orange-500 border-orange-500'
-                                                                        : 'border-orange-300 bg-white'
-                                                                }`}
-                                                            >
-                                                                {checkedIngredients.has(item.name) && (
-                                                                    <Ionicons name="checkmark" size={16} color="#FFF" />
-                                                                )}
                                                             </View>
+                                                            <View className="flex-row flex-wrap">
+                                                                {mainIngredients.map((item, index) => (
+                                                                    <TouchableOpacity
+                                                                        key={`main-${item.name}-${index}`}
+                                                                        onPress={() => toggleIngredientCheck(item.name)}
+                                                                        className="w-[48%] mr-[2%] mb-2"
+                                                                        style={{ marginRight: index % 2 === 0 ? '2%' : 0 }}
+                                                                        activeOpacity={0.7}
+                                                                    >
+                                                                        <View className="flex-row items-start py-3 px-2 bg-gray-50 rounded-lg border border-gray-100">
+                                                                            <View
+                                                                                className={`w-5 h-5 rounded-md border-2 mr-2 mt-0.5 items-center justify-center flex-shrink-0 ${checkedIngredients.has(item.name)
+                                                                                    ? 'bg-orange-500 border-orange-500'
+                                                                                    : 'border-gray-300 bg-white'
+                                                                                    }`}
+                                                                            >
+                                                                                {checkedIngredients.has(item.name) && (
+                                                                                    <Ionicons name="checkmark" size={14} color="#FFF" />
+                                                                                )}
+                                                                            </View>
+                                                                            <View className="flex-1">
+                                                                                <Text
+                                                                                    className={`text-sm ${checkedIngredients.has(item.name)
+                                                                                        ? 'text-gray-400 line-through'
+                                                                                        : 'text-gray-900 font-medium'
+                                                                                        }`}
+                                                                                    numberOfLines={2}
+                                                                                >
+                                                                                    {item.name}
+                                                                                </Text>
+                                                                                {item.quantity > 0 && item.unit && (
+                                                                                    <Text className="text-gray-500 text-xs mt-0.5">
+                                                                                        {item.quantity} {item.unit}
+                                                                                    </Text>
+                                                                                )}
+                                                                            </View>
+                                                                        </View>
+                                                                    </TouchableOpacity>
+                                                                ))}
+                                                            </View>
+                                                        </View>
+                                                    )}
 
-                                                            {/* Ingredient Info */}
-                                                            <View className="flex-1">
-                                                                <Text
-                                                                    className={`text-base ${
-                                                                        checkedIngredients.has(item.name)
-                                                                            ? 'text-gray-400 line-through'
-                                                                            : 'text-gray-900 font-medium'
-                                                                    }`}
-                                                                >
-                                                                    {item.name}
+                                                    {/* Seasonings Section */}
+                                                    {seasonings.length > 0 && (
+                                                        <View>
+                                                            <View className="flex-row items-center mb-3">
+                                                                <Text className="text-base font-bold text-gray-900">
+                                                                    🧂 Gia vị
                                                                 </Text>
-                                                            </View>
-
-                                                            {/* Quantity Badge - only show if has quantity */}
-                                                            {item.quantity > 0 && item.unit && (
-                                                                <View className="bg-orange-100 px-2.5 py-1 rounded-full">
-                                                                    <Text className="text-orange-700 text-xs font-semibold">
-                                                                        {item.quantity} {item.unit}
+                                                                <View className="ml-2 bg-green-100 px-2 py-0.5 rounded-full">
+                                                                    <Text className="text-xs font-semibold text-green-700">
+                                                                        {seasonings.length}
                                                                     </Text>
                                                                 </View>
-                                                            )}
-                                                        </TouchableOpacity>
-                                                    ))}
-                                                </View>
-                                            )}
-                                        </View>
-                                    ) : (
-                                        <View className="items-center py-12">
-                                            <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
-                                            <Text className="text-gray-500 mt-4 text-center">
-                                                Chưa có nguyên liệu nào{'\n'}Hãy thêm món ăn vào kế hoạch!
-                                            </Text>
-                                        </View>
-                                    );
-                                })()}
+                                                            </View>
+                                                            <View className="flex-row flex-wrap">
+                                                                {seasonings.map((item, index) => (
+                                                                    <TouchableOpacity
+                                                                        key={`seasoning-${item.name}-${index}`}
+                                                                        onPress={() => toggleIngredientCheck(item.name)}
+                                                                        className="w-[48%] mr-[2%] mb-2"
+                                                                        style={{ marginRight: index % 2 === 0 ? '2%' : 0 }}
+                                                                        activeOpacity={0.7}
+                                                                    >
+                                                                        <View className="flex-row items-start py-3 px-2 bg-gray-50 rounded-lg border border-gray-100">
+                                                                            <View
+                                                                                className={`w-5 h-5 rounded-md border-2 mr-2 mt-0.5 items-center justify-center flex-shrink-0 ${checkedIngredients.has(item.name)
+                                                                                    ? 'bg-orange-500 border-orange-500'
+                                                                                    : 'border-gray-300 bg-white'
+                                                                                    }`}
+                                                                            >
+                                                                                {checkedIngredients.has(item.name) && (
+                                                                                    <Ionicons name="checkmark" size={14} color="#FFF" />
+                                                                                )}
+                                                                            </View>
+                                                                            <View className="flex-1">
+                                                                                <Text
+                                                                                    className={`text-sm ${checkedIngredients.has(item.name)
+                                                                                        ? 'text-gray-400 line-through'
+                                                                                        : 'text-gray-900 font-medium'
+                                                                                        }`}
+                                                                                    numberOfLines={2}
+                                                                                >
+                                                                                    {item.name}
+                                                                                </Text>
+                                                                                {item.quantity > 0 && item.unit && (
+                                                                                    <Text className="text-gray-500 text-xs mt-0.5">
+                                                                                        {item.quantity} {item.unit}
+                                                                                    </Text>
+                                                                                )}
+                                                                            </View>
+                                                                        </View>
+                                                                    </TouchableOpacity>
+                                                                ))}
+                                                            </View>
+                                                        </View>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                    </View>
+                                )}
                             </View>
 
                             {/* Action Button */}
@@ -1329,12 +1331,8 @@ export default function MealPlanPage() {
                                                 visibilityTime: 3000,
                                             });
                                         }}
-                                        className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl py-3 flex-row items-center justify-center"
                                     >
-                                        <Ionicons name="download-outline" size={20} color="#FFF" />
-                                        <Text className="text-white font-bold text-base ml-2">
-                                            Xuất danh sách
-                                        </Text>
+
                                     </TouchableOpacity>
                                 </View>
                             )}
@@ -1346,12 +1344,12 @@ export default function MealPlanPage() {
                                 <Ionicons name="bulb" size={20} color="#3B82F6" />
                                 <View className="flex-1 ml-3">
                                     <Text className="text-blue-900 font-semibold text-sm mb-1">
-                                        💡 Mẹo mua sắm
+                                         Mẹo mua sắm
                                     </Text>
                                     <Text className="text-blue-700 text-xs leading-5">
-                                        • Nhấn vào nguyên liệu để đánh dấu đã mua{'\n'}
-                                        • Số lần xuất hiện cho biết cần dùng cho bao nhiêu món{'\n'}
-                                        • Nên mua đủ số lượng theo kế hoạch để tránh lãng phí
+                                        • Kiểm tra nguyên liệu đã có trước khi mua{'\n'}
+                                        • Tích vào từng nguyên liệu để đánh dấu đã mua{'\n'}
+                                        • Nên mua vào sáng sớm để nguyên liệu tươi hơn.
                                     </Text>
                                 </View>
                             </View>
@@ -1419,11 +1417,16 @@ export default function MealPlanPage() {
                                     >
                                         <View className="bg-white rounded-2xl shadow-lg overflow-hidden">
                                             {/* Date Header */}
-                                            <View className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
+                                            <LinearGradient
+                                                colors={['#F97316', '#EA580C']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                className="p-4"
+                                            >
                                                 <Text className="text-white font-bold text-lg text-center">
                                                     {dayName}, {date.getDate()}/{date.getMonth() + 1}
                                                 </Text>
-                                            </View>
+                                            </LinearGradient>
 
                                             {/* Meals */}
                                             <ScrollView
@@ -1449,50 +1452,47 @@ export default function MealPlanPage() {
                                                             </View>
 
                                                             {recipe ? (
-                                                                <TouchableOpacity
-                                                                    onPress={() => {
-                                                                        try {
-                                                                            if (navigation && typeof navigation.navigate === 'function') {
-                                                                                (navigation as any).navigate("RecipeDetail", { id: recipe._id });
-                                                                            }
-                                                                        } catch (error) {
-                                                                            console.error("Navigation error:", error);
+                                                                <View className="bg-white rounded-xl p-3 flex-row items-center border border-gray-200">
+                                                                    <TouchableOpacity
+                                                                        onPress={() =>
+                                                                            (navigation as any).navigate("RecipeDetail", { id: recipe._id })
                                                                         }
-                                                                    }}
-                                                                    className="bg-gray-50 rounded-xl p-3 flex-row items-center"
-                                                                    style={{ height: 88 }}
-                                                                >
-                                                                    <Image
-                                                                        source={{ uri: recipe.image }}
-                                                                        className="w-16 h-16 rounded-lg"
-                                                                        resizeMode="cover"
-                                                                    />
-                                                                    <View className="flex-1 ml-3">
-                                                                        <Text
-                                                                            className="text-sm font-semibold text-gray-900"
-                                                                            numberOfLines={2}
-                                                                        >
-                                                                            {recipe.name}
-                                                                        </Text>
-                                                                        <Text className="text-xs text-gray-500 mt-1">
-                                                                            {recipe.time} phút • {recipe.difficulty}
-                                                                        </Text>
-                                                                    </View>
+                                                                        className="flex-row items-center flex-1"
+                                                                    >
+                                                                        <Image
+                                                                            source={{ uri: recipe.image }}
+                                                                            className="w-16 h-16 rounded-lg"
+                                                                            resizeMode="cover"
+                                                                        />
+                                                                        <View className="flex-1 ml-3">
+                                                                            <Text
+                                                                                className="text-sm font-semibold text-gray-900"
+                                                                                numberOfLines={2}
+                                                                            >
+                                                                                {recipe.name}
+                                                                            </Text>
+                                                                            <Text className="text-xs text-gray-500 mt-1">
+                                                                                {recipe.time} phút • Dễ
+                                                                            </Text>
+                                                                        </View>
+                                                                    </TouchableOpacity>
                                                                     {currentPlan?.status !== "completed" && (
                                                                         <TouchableOpacity
                                                                             onPress={() =>
                                                                                 removeRecipeFromMeal(dateStr, mealType.id)
                                                                             }
-                                                                            className="p-2"
+                                                                            className="ml-2"
                                                                         >
-                                                                            <Ionicons
-                                                                                name="close-circle"
-                                                                                size={24}
-                                                                                color="#EF4444"
-                                                                            />
+                                                                            <View className="w-6 h-6 bg-red-500 rounded-full items-center justify-center">
+                                                                                <Ionicons
+                                                                                    name="close"
+                                                                                    size={16}
+                                                                                    color="#FFFFFF"
+                                                                                />
+                                                                            </View>
                                                                         </TouchableOpacity>
                                                                     )}
-                                                                </TouchableOpacity>
+                                                                </View>
                                                             ) : (
                                                                 <TouchableOpacity
                                                                     onPress={() => {
@@ -1512,21 +1512,20 @@ export default function MealPlanPage() {
                                                                         });
                                                                         setShowRecipeSelector(true);
                                                                     }}
-                                                                    className="bg-gray-50 rounded-xl p-3 flex-row items-center border border-dashed border-gray-300"
-                                                                    style={{ height: 88 }}
+                                                                    className="bg-white rounded-xl p-3 flex-row items-center border border-dashed border-gray-300"
                                                                 >
-                                                                    <View className="w-16 h-16 rounded-lg bg-gray-100 items-center justify-center">
+                                                                    <View className="w-16 h-16 rounded-lg bg-gray-50 items-center justify-center border border-gray-200">
                                                                         <Ionicons
                                                                             name="add-circle-outline"
-                                                                            size={28}
-                                                                            color="#9CA3AF"
+                                                                            size={32}
+                                                                            color="#D1D5DB"
                                                                         />
                                                                     </View>
                                                                     <View className="flex-1 ml-3 justify-center">
-                                                                        <Text className="text-sm font-semibold text-gray-600">
+                                                                        <Text className="text-sm font-semibold text-gray-700">
                                                                             Thêm món ăn
                                                                         </Text>
-                                                                        <Text className="text-xs text-gray-400 mt-1" numberOfLines={1}>
+                                                                        <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>
                                                                             Nhấn để chọn món
                                                                         </Text>
                                                                     </View>
@@ -1563,7 +1562,7 @@ export default function MealPlanPage() {
                                 className="bg-orange-500 rounded-xl py-4 items-center mb-3"
                             >
                                 <Text className="text-white font-bold text-base">
-                                    Lưu thay đổi {changeCount > 0 && `(${changeCount})`}
+                                    Lưu thay đổi
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -1598,7 +1597,7 @@ export default function MealPlanPage() {
                                 <View className="flex-row items-center">
                                     <Ionicons name="trash-outline" size={20} color="#FFF" />
                                     <Text className="text-white font-bold text-base ml-2">
-                                        Xóa kế hoạch đã hoàn thành
+                                        Xóa kế hoạch
                                     </Text>
                                 </View>
                             </TouchableOpacity>
@@ -1634,7 +1633,12 @@ export default function MealPlanPage() {
                 <View className="flex-1 bg-black/50 justify-center items-center p-4">
                     <View className="bg-white rounded-3xl w-full max-w-md overflow-hidden">
                         {/* Header */}
-                        <View className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
+                        <LinearGradient
+                            colors={['#F97316', '#EA580C']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            className="p-6"
+                        >
                             <View className="flex-row items-center justify-between mb-2">
                                 <Text className="text-white text-xl font-bold">
                                     📅 Chọn Ngày Bắt Đầu
@@ -1652,7 +1656,7 @@ export default function MealPlanPage() {
                             <Text className="text-white/90 text-sm">
                                 Kế hoạch sẽ bắt đầu từ ngày này và kéo dài 7 ngày
                             </Text>
-                        </View>
+                        </LinearGradient>
 
                         {/* Calendar */}
                         <View className="p-6">
@@ -1767,7 +1771,12 @@ export default function MealPlanPage() {
 
                             {/* Selected Date Display */}
                             {selectedStartDate && !isDateDisabled(selectedStartDate) && (
-                                <View className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border-2 border-orange-200">
+                                <LinearGradient
+                                    colors={['#FFF7ED', '#FFEDD5']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    className="mt-6 p-4 rounded-xl border-2 border-orange-200"
+                                >
                                     <View className="flex-row items-center justify-between">
                                         <View className="flex-1">
                                             <Text className="text-xs text-gray-600 mb-1">
@@ -1784,7 +1793,7 @@ export default function MealPlanPage() {
                                         </View>
                                         <Ionicons name="calendar" size={32} color="#F97316" />
                                     </View>
-                                </View>
+                                </LinearGradient>
                             )}
                         </View>
 
