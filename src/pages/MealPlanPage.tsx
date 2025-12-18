@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import {
     View,
     Text,
@@ -20,7 +20,7 @@ import {
     type DayPlan,
     type Meal,
 } from "../redux/slices/mealPlanSlice";
-import { fetchRecipes } from "../redux/slices/recipeSlice";
+import { fetchRecipes, getRecipeById, type Recipe } from "../redux/slices/recipeSlice";
 import Toast from "react-native-toast-message";
 
 type MealType = "morning" | "noon" | "evening";
@@ -98,26 +98,48 @@ export default function MealPlanPage() {
     // Checked ingredients for shopping list
     const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
 
-    // Load data whenever page is focused
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            console.log('🔄 MealPlanPage - Fetching recipes...');
-            dispatch(fetchRecipes());
-            if (user?._id) {
-                dispatch(fetchMealPlansByUser(user._id));
-            }
-        });
+    // Cache for detailed recipes with ingredientsWithDetails
+    const [detailedRecipes, setDetailedRecipes] = useState<Map<string, Recipe>>(new Map());
 
-        return unsubscribe;
-    }, [dispatch, user, navigation]);
+    // Track current viewing date index for swipe
+    const [currentViewingDateIndex, setCurrentViewingDateIndex] = useState(0);
+
+    // Ref for horizontal ScrollView to scroll to today
+    const horizontalScrollRef = useRef<ScrollView>(null);
+
+    // Flag to track if we've already auto-scrolled to today (only on first load)
+    const hasAutoScrolledRef = useRef(false);
+
+    // Load data on mount and when user changes
+    useEffect(() => {
+        console.log('🔄 MealPlanPage - Fetching recipes...');
+        dispatch(fetchRecipes());
+        if (user?._id) {
+            dispatch(fetchMealPlansByUser(user._id));
+        }
+    }, [dispatch, user?._id]);
+
+    // Auto scroll to today's date ONLY on initial load (first time entering MealPlan)
+    useEffect(() => {
+        if (viewMode === "viewing" && horizontalScrollRef.current && currentViewingDateIndex > 0 && !hasAutoScrolledRef.current) {
+            setTimeout(() => {
+                horizontalScrollRef.current?.scrollTo({
+                    x: currentViewingDateIndex * SCREEN_WIDTH,
+                    animated: true
+                });
+                // Mark as scrolled so it won't auto-scroll again
+                hasAutoScrolledRef.current = true;
+            }, 300);
+        }
+    }, [viewMode, currentViewingDateIndex]);
 
     // Handle AI-generated meal plan from chatbot
     useEffect(() => {
         const params = route.params as { aiGeneratedPlan?: AIGeneratedPlan } | undefined;
-        
+
         if (params?.aiGeneratedPlan) {
             console.log('🤖 Received AI-generated meal plan:', params.aiGeneratedPlan);
-            
+
             // Check if user is logged in
             if (!user?._id) {
                 Toast.show({
@@ -130,33 +152,20 @@ export default function MealPlanPage() {
                 return;
             }
 
-            // Check pending plans limit (max 3)
-            const pendingPlans = mealPlans.filter(p => p.status === 'pending');
-            if (pendingPlans.length >= 3) {
-                Toast.show({
-                    type: 'error',
-                    text1: '⚠️ Giới hạn kế hoạch',
-                    text2: 'Bạn đã có 3 kế hoạch chưa hoàn thành. Vui lòng hoàn thành hoặc xóa bớt trước khi tạo mới.',
-                });
-                
-                // Clear navigation params
-                // @ts-ignore
-                navigation.setParams({ aiGeneratedPlan: undefined });
-                return;
-            }
+            // No limit on meal plans - users can create as many as they want
 
             // Set view mode to creating
             setViewMode('creating');
-            
+
             // Save AI-generated plans temporarily (without date)
             setAiGeneratedPlans(params.aiGeneratedPlan.plans);
-            
+
             // Clear editingPlans (will be set after user selects start date)
             setEditingPlans([]);
-            
+
             // Open start date modal for user to select start date
             setShowDatePickerModal(true);
-            
+
             // Clear navigation params to prevent re-triggering
             // @ts-ignore
             navigation.setParams({ aiGeneratedPlan: undefined });
@@ -187,11 +196,35 @@ export default function MealPlanPage() {
                 setHasChanges(false);
             }
         } else if (viewMode === "browse") {
-            // Chỉ auto-switch sang viewing khi đang ở browse mode
-            // Ưu tiên hiển thị pending plan đầu tiên
-            const firstPendingIndex = sortedMealPlans.findIndex(p => p.status === 'pending');
-            const targetIndex = firstPendingIndex !== -1 ? firstPendingIndex : 0;
+            // Tìm plan chứa ngày hôm nay
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
             
+            const planWithToday = sortedMealPlans.findIndex(plan => {
+                const startDate = new Date(plan.startDate);
+                startDate.setHours(0, 0, 0, 0);
+                const endDate = new Date(plan.endDate);
+                endDate.setHours(0, 0, 0, 0);
+                
+                return today >= startDate && today <= endDate;
+            });
+
+            // Nếu có plan chứa hôm nay thì ưu tiên hiển thị, không thì hiển thị pending đầu tiên
+            let targetIndex;
+            if (planWithToday !== -1) {
+                targetIndex = planWithToday;
+                
+                // Tính toán index của ngày hôm nay trong tuần
+                const planStart = new Date(sortedMealPlans[planWithToday].startDate);
+                planStart.setHours(0, 0, 0, 0);
+                const daysDiff = Math.floor((today.getTime() - planStart.getTime()) / (1000 * 60 * 60 * 24));
+                setCurrentViewingDateIndex(daysDiff);
+            } else {
+                const firstPendingIndex = sortedMealPlans.findIndex(p => p.status === 'pending');
+                targetIndex = firstPendingIndex !== -1 ? firstPendingIndex : 0;
+                setCurrentViewingDateIndex(0);
+            }
+
             setViewMode("viewing");
             setCurrentPlanIndex(targetIndex);
             const targetPlan = sortedMealPlans[targetIndex];
@@ -204,7 +237,7 @@ export default function MealPlanPage() {
             if (sortedMealPlans.length > 0) {
                 const firstPendingIndex = sortedMealPlans.findIndex(p => p.status === 'pending');
                 const targetIndex = firstPendingIndex !== -1 ? firstPendingIndex : 0;
-                
+
                 setCurrentPlanIndex(targetIndex);
                 const targetPlan = sortedMealPlans[targetIndex];
                 const plans = targetPlan?.plans || [];
@@ -213,8 +246,48 @@ export default function MealPlanPage() {
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sortedMealPlans.length, justCreatedPlanId, viewMode]);    // Generate week dates
-    const getWeekDates = (): Date[] => {
+    }, [sortedMealPlans.length, justCreatedPlanId, viewMode]);
+
+    // Fetch detailed recipes when meal plan changes (parallel fetch all)
+    useEffect(() => {
+        const fetchDetailedRecipes = async () => {
+            const recipeIds = new Set<string>();
+            editingPlans.forEach(plan => {
+                if (plan.morning?.recipeId) recipeIds.add(plan.morning.recipeId);
+                if (plan.noon?.recipeId) recipeIds.add(plan.noon.recipeId);
+                if (plan.evening?.recipeId) recipeIds.add(plan.evening.recipeId);
+            });
+
+            // Filter out recipes already in cache
+            const idsToFetch = Array.from(recipeIds).filter(id => !detailedRecipes.has(id));
+
+            if (idsToFetch.length === 0) return;
+
+            // Fetch all recipes in parallel
+            const fetchPromises = idsToFetch.map(recipeId =>
+                dispatch(getRecipeById(recipeId)).unwrap().catch(error => {
+                    console.error(`Failed to fetch recipe ${recipeId}:`, error);
+                    return null;
+                })
+            );
+
+            const results = await Promise.all(fetchPromises);
+
+            const newDetailedRecipes = new Map(detailedRecipes);
+            results.forEach((result, index) => {
+                if (result) {
+                    newDetailedRecipes.set(idsToFetch[index], result);
+                }
+            });
+
+            setDetailedRecipes(newDetailedRecipes);
+        };
+
+        if (editingPlans.length > 0) {
+            fetchDetailedRecipes();
+        }
+    }, [editingPlans, dispatch]);    // Generate week dates with useMemo to prevent recalculation
+    const weekDates = useMemo((): Date[] => {
         if (viewMode === "creating" && selectedStartDate) {
             const dates = [];
             for (let i = 0; i < 7; i++) {
@@ -242,9 +315,7 @@ export default function MealPlanPage() {
             dates.push(date);
         }
         return dates;
-    };
-
-    const weekDates = getWeekDates();
+    }, [viewMode, selectedStartDate, currentPlan]);
 
     // Format date to string
     const formatDate = (date: Date): string => {
@@ -280,45 +351,11 @@ export default function MealPlanPage() {
     };
 
     // Check if start date conflicts with existing plans (±6 days)
+    // NOTE: Conflict check is disabled - users can create unlimited meal plans
     const isStartDateConflict = (
         newStartDate: Date
     ): { hasConflict: boolean; conflictMessage?: string } => {
-        const normalizedNewDate = new Date(newStartDate);
-        normalizedNewDate.setHours(0, 0, 0, 0);
-
-        for (const existingPlan of sortedMealPlans) {
-            const existingStart = new Date(existingPlan.startDate);
-            existingStart.setHours(0, 0, 0, 0);
-
-            const forbiddenStart = new Date(existingStart);
-            forbiddenStart.setDate(existingStart.getDate() - 6);
-            forbiddenStart.setHours(0, 0, 0, 0);
-
-            const forbiddenEnd = new Date(existingStart);
-            forbiddenEnd.setDate(existingStart.getDate() + 6);
-            forbiddenEnd.setHours(0, 0, 0, 0);
-
-            if (
-                normalizedNewDate >= forbiddenStart &&
-                normalizedNewDate <= forbiddenEnd
-            ) {
-                const formatDateVN = (date: Date) =>
-                    `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
-                        .toString()
-                        .padStart(2, "0")}/${date.getFullYear()}`;
-
-                const message = `Ngày bắt đầu (${formatDateVN(
-                    normalizedNewDate
-                )}) nằm trong vùng cấm (từ ${formatDateVN(
-                    forbiddenStart
-                )} đến ${formatDateVN(forbiddenEnd)}) của kế hoạch bắt đầu ${formatDateVN(
-                    existingStart
-                )}.`;
-
-                return { hasConflict: true, conflictMessage: message };
-            }
-        }
-
+        // Always return no conflict - users can create plans on any date
         return { hasConflict: false };
     };
 
@@ -335,10 +372,10 @@ export default function MealPlanPage() {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
+        // Only disable past dates - no conflict check
         if (normalizedDate < tomorrow) return true;
 
-        const conflictCheck = isStartDateConflict(normalizedDate);
-        return conflictCheck.hasConflict;
+        return false;
     };
 
     // Count number of changes from original plan
@@ -447,18 +484,6 @@ export default function MealPlanPage() {
                 text2: "Vui lòng đăng nhập để sử dụng tính năng này!",
                 position: "top",
                 visibilityTime: 3000,
-            });
-            return;
-        }
-
-        const pendingPlans = sortedMealPlans.filter((p) => p.status === "pending");
-        if (pendingPlans.length >= 3) {
-            Toast.show({
-                type: "error",
-                text1: "Giới hạn kế hoạch",
-                text2: "Bạn đã có 3 kế hoạch chưa hoàn thành. Vui lòng hoàn thành hoặc xóa bớt trước khi tạo mới.",
-                position: "top",
-                visibilityTime: 4000,
             });
             return;
         }
@@ -640,6 +665,13 @@ export default function MealPlanPage() {
             } else {
                 const formattedStartDate = formatDate(selectedStartDate);
 
+                console.log("📅 Creating meal plan with data:", {
+                    userId: user._id,
+                    plansCount: validPlans.length,
+                    startDate: formattedStartDate,
+                    plans: validPlans
+                });
+
                 const newPlan = await dispatch(
                     createMealPlan({
                         userId: user._id,
@@ -686,6 +718,7 @@ export default function MealPlanPage() {
                 });
             }
         } catch (err) {
+            console.error("❌ Error saving meal plan:", err);
             const errorMessage =
                 err instanceof Error ? err.message : "Có lỗi xảy ra";
             Toast.show({
@@ -787,19 +820,51 @@ export default function MealPlanPage() {
 
     // Generate shopping list from meal plan
     const generateShoppingList = () => {
-        const ingredientMap = new Map<string, { name: string; count: number }>();
+        const ingredientMap = new Map<string, { name: string; quantity: number; unit: string; ingredientId?: string }>();
 
         editingPlans.forEach((plan) => {
             [plan.morning, plan.noon, plan.evening].forEach((meal) => {
                 if (meal?.recipeId) {
-                    const recipe = recipes.find((r) => r._id === meal.recipeId);
-                    if (recipe && recipe.ingredients) {
-                        recipe.ingredients.forEach((ing) => {
-                            const existing = ingredientMap.get(ing.name);
-                            if (existing) {
-                                existing.count++;
+                    // Try to get from cache first
+                    let recipe = detailedRecipes.get(meal.recipeId);
+
+                    // If not in cache, use from recipes list
+                    if (!recipe) {
+                        recipe = recipes.find((r) => r._id === meal.recipeId);
+                    }
+
+                    if (recipe && recipe.ingredientsWithDetails && recipe.ingredientsWithDetails.length > 0) {
+                        // Use ingredientsWithDetails if available
+                        recipe.ingredientsWithDetails.forEach((ingredient) => {
+                            const name = ingredient.name;
+                            const key = `${name}-${ingredient.unit}`; // Use combined key to distinguish by unit
+                            if (ingredientMap.has(key)) {
+                                const existing = ingredientMap.get(key)!;
+                                ingredientMap.set(key, {
+                                    name,
+                                    quantity: existing.quantity + ingredient.quantity,
+                                    unit: ingredient.unit,
+                                    ingredientId: ingredient.ingredientId
+                                });
                             } else {
-                                ingredientMap.set(ing.name, { name: ing.name, count: 1 });
+                                ingredientMap.set(key, {
+                                    name,
+                                    quantity: ingredient.quantity,
+                                    unit: ingredient.unit,
+                                    ingredientId: ingredient.ingredientId
+                                });
+                            }
+                        });
+                    } else if (recipe && recipe.ingredients) {
+                        // Fallback to old ingredients if no ingredientsWithDetails
+                        recipe.ingredients.forEach((ingredient) => {
+                            const name = ingredient.name;
+                            const key = `${name}-count`;
+                            if (ingredientMap.has(key)) {
+                                const existing = ingredientMap.get(key)!;
+                                ingredientMap.set(key, { name, quantity: existing.quantity + 1, unit: 'x', ingredientId: ingredient._id });
+                            } else {
+                                ingredientMap.set(key, { name, quantity: 1, unit: 'x', ingredientId: ingredient._id });
                             }
                         });
                     }
@@ -808,6 +873,61 @@ export default function MealPlanPage() {
         });
 
         return Array.from(ingredientMap.values());
+    };
+
+    // Categorize shopping list into main ingredients and seasonings
+    const categorizeShoppingList = () => {
+        const allItems = generateShoppingList();
+        const mainIngredients: typeof allItems = [];
+        const seasonings: typeof allItems = [];
+
+        // List of common seasonings (can be expanded)
+        const seasoningKeywords = [
+            'muối', 'đường', 'tiêu', 'bột ngọt', 'nước mắm', 'dầu', 'giấm',
+            'tương', 'mè', 'mật ong', 'ớt', 'ngũ vị hương', 'quế', 'hồi',
+            'gừng', 'sả', 'tỏi', 'hành', 'chanh', 'bột', 'hạt nêm',
+            'salt', 'sugar', 'pepper', 'oil', 'sauce', 'vinegar', 'honey',
+            'chili', 'ginger', 'garlic', 'onion', 'powder'
+        ];
+
+        // Small cooking measurements (not shopping units)
+        const cookingMeasurements = [
+            'muỗng canh', 'muỗng cà phê', 'muỗng', 'thìa', 'thia',
+            'nhúm', 'chút', 'ít', 'vừa đủ', 'tép', 'miếng',
+            'tablespoon', 'teaspoon', 'spoon', 'pinch', 'dash', 'piece', 'tép'
+        ];
+
+        allItems.forEach(item => {
+            const ingredientObj = item.ingredientId
+                ? recipes.flatMap(r => r.ingredients).find(ing => ing._id === item.ingredientId)
+                : null;
+
+            // Check by typeId or name
+            const isSeasoningByType = ingredientObj?.typeId &&
+                ['gia vị', 'seasoning', 'spices'].some(s => ingredientObj.typeId.toLowerCase().includes(s));
+
+            const isSeasoningByName = seasoningKeywords.some(keyword =>
+                item.name.toLowerCase().includes(keyword.toLowerCase())
+            );
+
+            // Check if it's a small cooking measurement
+            const isSmallMeasurement = cookingMeasurements.some(unit =>
+                item.unit.toLowerCase().includes(unit.toLowerCase())
+            );
+
+            // Process item with small measurement - only save name
+            const processedItem = isSmallMeasurement
+                ? { ...item, quantity: 0, unit: '' }
+                : item;
+
+            if (isSeasoningByType || isSeasoningByName) {
+                seasonings.push(processedItem);
+            } else {
+                mainIngredients.push(processedItem);
+            }
+        });
+
+        return { mainIngredients, seasonings };
     };
 
     // Toggle ingredient check
@@ -889,17 +1009,20 @@ export default function MealPlanPage() {
 
                     {/* Stats */}
                     <View className="flex-row gap-3 mt-4">
-                        <View className="flex-1 bg-white rounded-xl p-4">
-                            <Text className="text-gray-500 text-xs mb-1">Tổng món</Text>
-                            <Text className="text-2xl font-bold text-orange-500">
+                        <View className="flex-1 bg-white rounded-xl p-4 shadow-sm">
+                            <Text className="text-gray-500 text-xs font-medium mb-2">Tổng món</Text>
+                            <Text className="text-3xl font-bold text-orange-500">
                                 {stats.totalRecipes}
                             </Text>
                         </View>
-                        <View className="flex-1 bg-white rounded-xl p-4">
-                            <Text className="text-gray-500 text-xs mb-1">Thời gian</Text>
-                            <Text className="text-2xl font-bold text-green-500">
-                                {stats.totalTime}p
-                            </Text>
+                        <View className="flex-1 bg-white rounded-xl p-4 shadow-sm">
+                            <Text className="text-gray-500 text-xs font-medium mb-2">Thời gian</Text>
+                            <View className="flex-row items-baseline">
+                                <Text className="text-3xl font-bold text-green-500">
+                                    {stats.totalTime}
+                                </Text>
+                                <Text className="text-lg font-semibold text-green-500 ml-1">phút</Text>
+                            </View>
                         </View>
                     </View>
 
@@ -908,39 +1031,35 @@ export default function MealPlanPage() {
                         <View className="flex-row gap-2 mt-4">
                             <TouchableOpacity
                                 onPress={() => setActiveTab('planner')}
-                                className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${
-                                    activeTab === 'planner' 
-                                        ? 'bg-orange-500' 
+                                className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${activeTab === 'planner'
+                                        ? 'bg-orange-500'
                                         : 'bg-white border border-gray-200'
-                                }`}
+                                    }`}
                             >
-                                <Ionicons 
-                                    name="calendar" 
-                                    size={20} 
-                                    color={activeTab === 'planner' ? '#FFF' : '#9CA3AF'} 
+                                <Ionicons
+                                    name="calendar"
+                                    size={20}
+                                    color={activeTab === 'planner' ? '#FFF' : '#9CA3AF'}
                                 />
-                                <Text className={`ml-2 font-semibold ${
-                                    activeTab === 'planner' ? 'text-white' : 'text-gray-500'
-                                }`}>
+                                <Text className={`ml-2 font-semibold ${activeTab === 'planner' ? 'text-white' : 'text-gray-500'
+                                    }`}>
                                     Lập kế hoạch
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={() => setActiveTab('shopping')}
-                                className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${
-                                    activeTab === 'shopping' 
-                                        ? 'bg-orange-500' 
+                                className={`flex-1 py-3 rounded-xl flex-row items-center justify-center ${activeTab === 'shopping'
+                                        ? 'bg-orange-500'
                                         : 'bg-white border border-gray-200'
-                                }`}
+                                    }`}
                             >
-                                <Ionicons 
-                                    name="cart" 
-                                    size={20} 
-                                    color={activeTab === 'shopping' ? '#FFF' : '#9CA3AF'} 
+                                <Ionicons
+                                    name="cart"
+                                    size={20}
+                                    color={activeTab === 'shopping' ? '#FFF' : '#9CA3AF'}
                                 />
-                                <Text className={`ml-2 font-semibold ${
-                                    activeTab === 'shopping' ? 'text-white' : 'text-gray-500'
-                                }`}>
+                                <Text className={`ml-2 font-semibold ${activeTab === 'shopping' ? 'text-white' : 'text-gray-500'
+                                    }`}>
                                     Mua sắm
                                 </Text>
                             </TouchableOpacity>
@@ -961,29 +1080,14 @@ export default function MealPlanPage() {
                             </TouchableOpacity>
 
                             <View className="flex-1 items-center">
-                                <Text className="text-sm text-gray-500">
-                                    Kế hoạch {currentPlanIndex + 1}/{sortedMealPlans.length}
+                                <Text className="text-base font-bold text-gray-900">
+                                    {new Date(currentPlan.startDate).toLocaleDateString("vi-VN")} - {new Date(currentPlan.endDate).toLocaleDateString("vi-VN")}
                                 </Text>
-                                <Text className="text-base font-semibold text-gray-900">
-                                    {new Date(currentPlan.startDate).toLocaleDateString("vi-VN")}
-                                </Text>
-                                <View
-                                    className={`px-3 py-1 rounded-full mt-1 ${currentPlan.status === "pending"
-                                        ? "bg-yellow-100"
-                                        : "bg-green-100"
-                                        }`}
-                                >
-                                    <Text
-                                        className={`text-xs font-semibold ${currentPlan.status === "pending"
-                                            ? "text-yellow-700"
-                                            : "text-green-700"
-                                            }`}
-                                    >
-                                        {currentPlan.status === "pending"
-                                            ? "Đang thực hiện"
-                                            : "Hoàn thành"}
+                                <Text className="text-sm text-gray-500 mt-1">
+                                    Kế hoạch {currentPlanIndex + 1}/{sortedMealPlans.length} • <Text className={currentPlan.status === "pending" ? "text-yellow-600" : "text-green-600"}>
+                                        {currentPlan.status === "pending" ? "Đang thực hiện" : "Hoàn thành"}
                                     </Text>
-                                </View>
+                                </Text>
                             </View>
 
                             <TouchableOpacity
@@ -1001,22 +1105,72 @@ export default function MealPlanPage() {
                     </View>
                 )}
 
+                {/* Today's Date Indicator */}
+                {(viewMode === "viewing" || viewMode === "creating") && activeTab === 'planner' && weekDates && weekDates.length > 0 && currentViewingDateIndex < weekDates.length && (() => {
+                    const viewingDate = weekDates[currentViewingDateIndex];
+                    if (!viewingDate) return null;
+                    
+                    try {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const compareDate = new Date(viewingDate);
+                        compareDate.setHours(0, 0, 0, 0);
+                        
+                        const isToday = today.getTime() === compareDate.getTime();
+                        const dayName = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"][viewingDate.getDay()];
+                        
+                        return (
+                            <View className="px-4 pt-4 pb-2">
+                                <View className={`rounded-xl p-3 border ${
+                                    isToday 
+                                        ? 'bg-orange-100 border-orange-400' 
+                                        : 'bg-gray-50 border-gray-200'
+                                }`}>
+                                    <View className="flex-row items-center justify-center">
+                                        <Ionicons 
+                                            name={isToday ? "calendar" : "calendar-outline"} 
+                                            size={20} 
+                                            color={isToday ? "#F97316" : "#6B7280"} 
+                                        />
+                                        <Text className={`font-bold text-base ml-2 ${
+                                            isToday ? 'text-orange-600' : 'text-gray-700'
+                                        }`}>
+                                            {dayName}, {viewingDate.getDate().toString().padStart(2, '0')}/{(viewingDate.getMonth() + 1).toString().padStart(2, '0')}
+                                        </Text>
+                                        {isToday && (
+                                            <View className="bg-orange-500 px-2 py-0.5 rounded-full ml-2">
+                                                <Text className="text-white text-xs font-bold">Hôm nay</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            </View>
+                        );
+                    } catch (error) {
+                        console.error("Error rendering date indicator:", error);
+                        return null;
+                    }
+                })()}
+
                 {/* Shopping List Tab - Moved up here */}
                 {activeTab === 'shopping' && (viewMode === "viewing" || viewMode === "creating") && (
                     <View className="px-4 mt-4">
                         <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             {/* Header */}
-                            <View className="bg-gradient-to-r from-orange-500 to-red-500 px-4 py-4">
+                            <View className="bg-orange-100 px-4 py-4">
                                 <View className="flex-row items-center justify-between">
                                     <View className="flex-row items-center">
-                                        <Ionicons name="cart" size={24} color="#FFF" />
-                                        <Text className="text-white text-lg font-bold ml-2">
+                                        <Ionicons name="cart" size={24} color="#F97316" />
+                                        <Text className="text-orange-900 text-lg font-bold ml-2">
                                             Danh sách mua sắm
                                         </Text>
                                     </View>
-                                    <View className="bg-white/20 px-3 py-1 rounded-full">
-                                        <Text className="text-white text-xs font-semibold">
-                                            {generateShoppingList().length} nguyên liệu
+                                    <View className="bg-orange-200 px-3 py-1 rounded-full">
+                                        <Text className="text-orange-900 text-xs font-semibold">
+                                            {(() => {
+                                                const { mainIngredients, seasonings } = categorizeShoppingList();
+                                                return mainIngredients.length + seasonings.length;
+                                            })()} nguyên liệu
                                         </Text>
                                     </View>
                                 </View>
@@ -1024,62 +1178,142 @@ export default function MealPlanPage() {
 
                             {/* Shopping List Content */}
                             <View className="p-4">
-                                {generateShoppingList().length === 0 ? (
-                                    <View className="items-center py-12">
-                                        <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
-                                        <Text className="text-gray-500 mt-4 text-center">
-                                            Chưa có nguyên liệu nào{'\n'}Hãy thêm món ăn vào kế hoạch!
-                                        </Text>
-                                    </View>
-                                ) : (
-                                    <View>
-                                        {generateShoppingList().map((item, index) => (
-                                            <TouchableOpacity
-                                                key={item.name}
-                                                onPress={() => toggleIngredientCheck(item.name)}
-                                                className={`flex-row items-center py-3 ${
-                                                    index !== generateShoppingList().length - 1
-                                                        ? 'border-b border-gray-100'
-                                                        : ''
-                                                }`}
-                                                activeOpacity={0.7}
-                                            >
-                                                {/* Checkbox */}
-                                                <View
-                                                    className={`w-6 h-6 rounded-md border-2 mr-3 items-center justify-center ${
-                                                        checkedIngredients.has(item.name)
-                                                            ? 'bg-orange-500 border-orange-500'
-                                                            : 'border-gray-300 bg-white'
-                                                    }`}
-                                                >
-                                                    {checkedIngredients.has(item.name) && (
-                                                        <Ionicons name="checkmark" size={16} color="#FFF" />
-                                                    )}
-                                                </View>
+                                {(() => {
+                                    const { mainIngredients, seasonings } = categorizeShoppingList();
+                                    const hasItems = mainIngredients.length > 0 || seasonings.length > 0;
 
-                                                {/* Ingredient Info */}
-                                                <View className="flex-1">
-                                                    <Text
-                                                        className={`text-base ${
-                                                            checkedIngredients.has(item.name)
-                                                                ? 'text-gray-400 line-through'
-                                                                : 'text-gray-900 font-medium'
-                                                        }`}
-                                                    >
-                                                        {item.name}
-                                                    </Text>
-                                                </View>
+                                    return hasItems ? (
+                                        <View>
+                                            {/* Main Ingredients Section */}
+                                            {mainIngredients.length > 0 && (
+                                                <View className="mb-6">
+                                                    <View className="flex-row items-center mb-3">
+                                                        <Ionicons name="basket" size={20} color="#10B981" />
+                                                        <Text className="text-base font-bold text-gray-900 ml-2">
+                                                            📦 Nguyên Liệu Chính
+                                                        </Text>
+                                                    </View>
+                                                    {mainIngredients.map((item, index) => (
+                                                        <TouchableOpacity
+                                                            key={`${item.name}-${index}`}
+                                                            onPress={() => toggleIngredientCheck(item.name)}
+                                                            className={`flex-row items-center py-3 ${
+                                                                index !== mainIngredients.length - 1
+                                                                    ? 'border-b border-gray-100'
+                                                                    : ''
+                                                            }`}
+                                                            activeOpacity={0.7}
+                                                        >
+                                                            {/* Checkbox */}
+                                                            <View
+                                                                className={`w-6 h-6 rounded-md border-2 mr-3 items-center justify-center ${
+                                                                    checkedIngredients.has(item.name)
+                                                                        ? 'bg-green-500 border-green-500'
+                                                                        : 'border-gray-300 bg-white'
+                                                                }`}
+                                                            >
+                                                                {checkedIngredients.has(item.name) && (
+                                                                    <Ionicons name="checkmark" size={16} color="#FFF" />
+                                                                )}
+                                                            </View>
 
-                                                {/* Count Badge */}
-                                                <View className="bg-orange-100 px-2.5 py-1 rounded-full">
-                                                    <Text className="text-orange-600 text-xs font-semibold">
-                                                        {item.count}x
-                                                    </Text>
+                                                            {/* Ingredient Info */}
+                                                            <View className="flex-1">
+                                                                <Text
+                                                                    className={`text-base ${
+                                                                        checkedIngredients.has(item.name)
+                                                                            ? 'text-gray-400 line-through'
+                                                                            : 'text-gray-900 font-medium'
+                                                                    }`}
+                                                                >
+                                                                    {item.name}
+                                                                </Text>
+                                                            </View>
+
+                                                            {/* Quantity Badge */}
+                                                            {item.quantity > 0 && item.unit && (
+                                                                <View className="bg-green-100 px-2.5 py-1 rounded-full">
+                                                                    <Text className="text-green-700 text-xs font-semibold">
+                                                                        {item.quantity} {item.unit}
+                                                                    </Text>
+                                                                </View>
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    ))}
                                                 </View>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                )}
+                                            )}
+
+                                            {/* Seasonings Section */}
+                                            {seasonings.length > 0 && (
+                                                <View>
+                                                    <View className="flex-row items-center mb-2">
+                                                        <Text className="text-lg mr-1">🧂</Text>
+                                                        <Text className="text-base font-bold text-gray-900">
+                                                            Gia Vị Cần Kiểm Tra
+                                                        </Text>
+                                                    </View>
+                                                    <Text className="text-xs text-gray-500 italic mb-3">
+                                                        (Kiểm tra tủ bếp trước khi mua)
+                                                    </Text>
+                                                    {seasonings.map((item, index) => (
+                                                        <TouchableOpacity
+                                                            key={`${item.name}-${index}`}
+                                                            onPress={() => toggleIngredientCheck(item.name)}
+                                                            className={`flex-row items-center py-3 ${
+                                                                index !== seasonings.length - 1
+                                                                    ? 'border-b border-gray-100'
+                                                                    : ''
+                                                            }`}
+                                                            activeOpacity={0.7}
+                                                        >
+                                                            {/* Checkbox */}
+                                                            <View
+                                                                className={`w-6 h-6 rounded-md border-2 mr-3 items-center justify-center ${
+                                                                    checkedIngredients.has(item.name)
+                                                                        ? 'bg-orange-500 border-orange-500'
+                                                                        : 'border-orange-300 bg-white'
+                                                                }`}
+                                                            >
+                                                                {checkedIngredients.has(item.name) && (
+                                                                    <Ionicons name="checkmark" size={16} color="#FFF" />
+                                                                )}
+                                                            </View>
+
+                                                            {/* Ingredient Info */}
+                                                            <View className="flex-1">
+                                                                <Text
+                                                                    className={`text-base ${
+                                                                        checkedIngredients.has(item.name)
+                                                                            ? 'text-gray-400 line-through'
+                                                                            : 'text-gray-900 font-medium'
+                                                                    }`}
+                                                                >
+                                                                    {item.name}
+                                                                </Text>
+                                                            </View>
+
+                                                            {/* Quantity Badge - only show if has quantity */}
+                                                            {item.quantity > 0 && item.unit && (
+                                                                <View className="bg-orange-100 px-2.5 py-1 rounded-full">
+                                                                    <Text className="text-orange-700 text-xs font-semibold">
+                                                                        {item.quantity} {item.unit}
+                                                                    </Text>
+                                                                </View>
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </View>
+                                    ) : (
+                                        <View className="items-center py-12">
+                                            <Ionicons name="cart-outline" size={64} color="#D1D5DB" />
+                                            <Text className="text-gray-500 mt-4 text-center">
+                                                Chưa có nguyên liệu nào{'\n'}Hãy thêm món ăn vào kế hoạch!
+                                            </Text>
+                                        </View>
+                                    );
+                                })()}
                             </View>
 
                             {/* Action Button */}
@@ -1151,11 +1385,24 @@ export default function MealPlanPage() {
                 {activeTab === 'planner' && (viewMode === "viewing" || viewMode === "creating") && (
                     <View className="mt-4">
                         <ScrollView
+                            ref={horizontalScrollRef}
                             horizontal
                             pagingEnabled
                             showsHorizontalScrollIndicator={false}
                             decelerationRate="fast"
                             snapToAlignment="start"
+                            onScroll={(event) => {
+                                try {
+                                    const offsetX = event.nativeEvent.contentOffset.x;
+                                    const index = Math.round(offsetX / SCREEN_WIDTH);
+                                    if (index >= 0 && index < weekDates.length) {
+                                        setCurrentViewingDateIndex(index);
+                                    }
+                                } catch (error) {
+                                    console.error("Error in onScroll:", error);
+                                }
+                            }}
+                            scrollEventThrottle={16}
                         >
                             {weekDates.map((date, dateIndex) => {
                                 const dateStr = formatDate(date);
@@ -1203,9 +1450,15 @@ export default function MealPlanPage() {
 
                                                             {recipe ? (
                                                                 <TouchableOpacity
-                                                                    onPress={() =>
-                                                                        (navigation as any).navigate("RecipeDetail", { id: recipe._id })
-                                                                    }
+                                                                    onPress={() => {
+                                                                        try {
+                                                                            if (navigation && typeof navigation.navigate === 'function') {
+                                                                                (navigation as any).navigate("RecipeDetail", { id: recipe._id });
+                                                                            }
+                                                                        } catch (error) {
+                                                                            console.error("Navigation error:", error);
+                                                                        }
+                                                                    }}
                                                                     className="bg-gray-50 rounded-xl p-3 flex-row items-center"
                                                                     style={{ height: 88 }}
                                                                 >
@@ -1334,6 +1587,20 @@ export default function MealPlanPage() {
                                 <Text className="text-white font-bold text-base">
                                     Xóa kế hoạch
                                 </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {viewMode === "viewing" && currentPlan?.status === "completed" && activeTab === 'planner' && (
+                            <TouchableOpacity
+                                onPress={deletePlan}
+                                className="bg-red-600 rounded-xl py-4 items-center mb-3 border-2 border-red-400"
+                            >
+                                <View className="flex-row items-center">
+                                    <Ionicons name="trash-outline" size={20} color="#FFF" />
+                                    <Text className="text-white font-bold text-base ml-2">
+                                        Xóa kế hoạch đã hoàn thành
+                                    </Text>
+                                </View>
                             </TouchableOpacity>
                         )}
 
@@ -1559,13 +1826,13 @@ export default function MealPlanPage() {
                                         const plansWithDate: DayPlan[] = aiGeneratedPlans.map((plan, index) => {
                                             const date = new Date(selectedStartDate);
                                             date.setDate(selectedStartDate.getDate() + index);
-                                            
+
                                             // Format date without timezone issues
                                             const year = date.getFullYear();
                                             const month = String(date.getMonth() + 1).padStart(2, '0');
                                             const day = String(date.getDate()).padStart(2, '0');
                                             const dateString = `${year}-${month}-${day}`;
-                                            
+
                                             return {
                                                 date: dateString,
                                                 morning: plan.morning || {},
@@ -1573,7 +1840,7 @@ export default function MealPlanPage() {
                                                 evening: plan.evening || {}
                                             };
                                         });
-                                        
+
                                         setEditingPlans(plansWithDate);
                                         setOriginalPlans([]); // Creating mode không cần originalPlans
                                         setAiGeneratedPlans(null); // Clear AI plans đã dùng

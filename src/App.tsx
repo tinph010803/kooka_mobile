@@ -15,6 +15,8 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import ContactPage from "./pages/ContactPage";
 import AllRecipesPage from "./pages/AllRecipesPage";
 import { NotificationPage } from "./pages/NotificationPage";
+import SuggestRecipePage from "./pages/SuggestRecipePage";
+import MySubmissionsPage from "./pages/MySubmissionsPage";
 import MainTabs from "./navigation/MainTabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -192,9 +194,23 @@ function AppNavigation() {
             animation: "fade_from_bottom",
           }}
         />
-        <Stack.Screen 
-          name="Notifications" 
+        <Stack.Screen
+          name="Notifications"
           component={NotificationPage}
+          options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="SuggestRecipe"
+          component={SuggestRecipePage}
+          options={{
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="MySubmissions"
+          component={MySubmissionsPage}
           options={{
             animation: "slide_from_right",
           }}

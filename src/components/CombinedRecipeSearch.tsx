@@ -209,7 +209,7 @@ const CombinedRecipeSearch: React.FC<CombinedRecipeSearchProps> = ({
                 searchMode === "keyword" ? "text-white" : "text-gray-700"
               }`}
             >
-              Tìm theo tên món
+              Tìm theo từ khóa
             </Text>
           </TouchableOpacity>
 
