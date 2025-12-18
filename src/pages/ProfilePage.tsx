@@ -20,6 +20,7 @@ import {
   HelpCircle,
   ChevronRight,
   Star,
+  Lightbulb,
 } from "lucide-react-native";
 import Toast from "react-native-toast-message";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
@@ -128,6 +129,11 @@ const ProfilePage: React.FC = () => {
               icon={Star} 
               label="Đánh Giá Của Tôi" 
               onPress={() => navigation.navigate("MyReviews" as never)}
+            />
+            <MenuItem 
+              icon={Lightbulb} 
+              label="Đề xuất món" 
+              onPress={() => navigation.navigate("MySubmissions" as never)}
             />
             <MenuItem 
               icon={Settings} 
