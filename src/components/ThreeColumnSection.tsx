@@ -128,7 +128,7 @@ const ThreeColumnSection: React.FC<ThreeColumnSectionProps> = ({
                 <TouchableOpacity
                   key={recipe._id}
                   onPress={() => handleRecipePress(recipe._id)}
-                  className="flex-row items-center gap-3 p-2 rounded-lg active:bg-gray-100 mb-2"
+                  className={`flex-row items-center gap-3 p-2 rounded-lg active:bg-gray-100 ${index < 4 ? 'mb-2' : ''}`}
                   activeOpacity={0.7}
                 >
                   <Text className="text-xl font-bold text-gray-500 w-6">
@@ -140,21 +140,31 @@ const ThreeColumnSection: React.FC<ThreeColumnSectionProps> = ({
                     className="w-10 h-14 rounded-md"
                     resizeMode="cover"
                   />
-                  <Text
-                    className="flex-1 text-gray-900 text-sm font-medium"
-                    numberOfLines={2}
-                  >
-                    {recipe.name}
-                  </Text>
+                  <View className="flex-1">
+                    <Text
+                      className="text-gray-900 text-sm font-medium"
+                      numberOfLines={1}
+                    >
+                      {recipe.name}
+                    </Text>
+                    <View className="flex-row items-center gap-1 mt-0.5">
+                      <Text className="text-xs text-gray-500">
+                        {recipe.numberOfRate} đánh giá
+                      </Text>
+                      <Text className="text-gray-400 text-xs">•</Text>
+                      <Star size={10} color="#f59e0b" fill="#f59e0b" />
+                      <Text className="text-xs text-gray-700 font-medium">
+                        {recipe.rate.toFixed(1)}
+                      </Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               ))}
-              {trendingRecipes.length > 5 && (
-                <TouchableOpacity className="w-full items-center py-2 mt-2">
-                  <Text className="text-sm text-gray-600 font-medium">
-                    Xem thêm
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity className="w-full items-center py-2 mt-2">
+                <Text className="text-sm text-gray-600 font-medium">
+                  Xem thêm
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -206,13 +216,11 @@ const ThreeColumnSection: React.FC<ThreeColumnSectionProps> = ({
                   </View>
                 </TouchableOpacity>
               ))}
-              {mostFavorited.length > 5 && (
-                <TouchableOpacity className="w-full items-center py-2 mt-2">
-                  <Text className="text-sm text-gray-600 font-medium">
-                    Xem thêm
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity className="w-full items-center py-2 mt-2">
+                <Text className="text-sm text-gray-600 font-medium">
+                  Xem thêm
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>

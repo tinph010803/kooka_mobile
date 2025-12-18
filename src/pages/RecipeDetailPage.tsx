@@ -13,7 +13,6 @@ import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/nativ
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { getRecipeById } from "../redux/slices/recipeSlice";
 import { toggleFavorite, checkUserFavorited } from "../redux/slices/favoriteSlice";
-import RecipeVideoPlayer from "../components/RecipeVideoPlayer";
 import CommentSection from "../components/CommentSection";
 import Toast from "react-native-toast-message";
 import { Flame } from "lucide-react-native";
@@ -446,26 +445,26 @@ export default function RecipeDetailPage() {
               {/* Ingredients Section */}
               {activeTab === 'ingredients' && (
                 <View className="p-4 pt-0">
-                  {currentRecipe.ingredients.map((ingredient, index) => (
-                    <Pressable
+                  {(currentRecipe.ingredientsWithDetails && currentRecipe.ingredientsWithDetails.length > 0
+                    ? currentRecipe.ingredientsWithDetails
+                    : currentRecipe.ingredients
+                  ).map((ingredient, index) => (
+                    <View
                       key={index}
-                      onPress={() => toggleIngredient(index)}
-                      className="flex-row items-center gap-3 py-3 px-3 bg-gray-50 rounded-lg mb-2 border border-transparent active:border-orange-200 active:bg-orange-50"
+                      className="flex-row items-start gap-3 py-3 px-3 bg-gray-50 rounded-lg mb-2"
                     >
-                      <View
-                        className={`h-5 w-5 rounded border-2 items-center justify-center ${checkedIngredients.includes(index)
-                          ? "bg-orange-500 border-orange-500"
-                          : "border-gray-300"
-                          }`}
-                      >
-                        {checkedIngredients.includes(index) && (
-                          <Ionicons name="checkmark" size={14} color="#FFF" />
+                      <View className="w-2 h-2 rounded-full bg-orange-500 mt-1.5" />
+                      <View className="flex-1 flex-row items-center justify-between">
+                        <Text className="text-sm text-gray-700 font-medium flex-1">
+                          {ingredient.name}
+                        </Text>
+                        {'quantity' in ingredient && 'unit' in ingredient && (
+                          <Text className="text-sm text-orange-600 font-semibold ml-2">
+                            {ingredient.quantity} {ingredient.unit}
+                          </Text>
                         )}
                       </View>
-                      <Text className="text-sm text-gray-700 font-medium flex-1">
-                        {ingredient.name}
-                      </Text>
-                    </Pressable>
+                    </View>
                   ))}
                 </View>
               )}
@@ -517,16 +516,6 @@ export default function RecipeDetailPage() {
               </View>
             </View>
           </View>
-
-          {/* Video Tutorial */}
-          {currentRecipe.video && currentRecipe.video.trim() !== "" && (
-            <RecipeVideoPlayer
-              videoUrl={currentRecipe.video}
-              recipeName={currentRecipe.name}
-              instructions={currentRecipe.instructions}
-              screenWidth={screenWidth}
-            />
-          )}
 
           {/* Comment Section */}
           <CommentSection recipeId={currentRecipe._id} />

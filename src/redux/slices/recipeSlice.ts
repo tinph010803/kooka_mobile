@@ -39,10 +39,18 @@ export interface Instruction {
   subTitle: string[];
 }
 
+export interface IngredientWithDetails {
+  ingredientId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
 export interface Recipe {
   _id: string;
   name: string;
   ingredients: Ingredient[];
+  ingredientsWithDetails?: IngredientWithDetails[];
   tags: Tag[];
   short: string;
   instructions: Instruction[];
